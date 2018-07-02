@@ -3,7 +3,7 @@ package eu.octanne.xelephclaims;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 
-//SALUT
+//SALUT POLLUX28
 public class ClaimChunk {
 	
 	private int x, z;
