@@ -3,6 +3,7 @@ package eu.octanne.xelephclaims;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 
+//SALUT
 public class ClaimChunk {
 	
 	private int x, z;
