@@ -1,9 +1,0 @@
-main: eu.octanne.xelephclaims.XelephClaim
-name: XelephClaims
-author: Octanne
-version: 2.0
-depends: [Vault]
-description: claim system area for player.
-commands:
-  claim:
-    description: a main command
