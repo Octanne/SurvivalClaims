@@ -1,4 +1,4 @@
-package eu.octanne.xelephclaims;
+package eu.octanne.survivalclaims;
 
 import java.io.File;
 import java.io.IOException;
@@ -109,7 +109,7 @@ public class ClaimOwner {
 	static ClaimOwner get(String ownerName) {
 		ArrayList<ClaimChunk> claims = new ArrayList<ClaimChunk>();
 		OwnerType type;
-		File file = new File(XelephClaim.pathFolder+"/data/"+ownerName);
+		File file = new File(SurvivalClaim.pathFolder+"/data/"+ownerName);
 		
 		if(file.exists()) {
 			YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
@@ -126,7 +126,7 @@ public class ClaimOwner {
 	 */
 	static boolean save(ClaimOwner owner) {
 		ArrayList<String> claimsSerialize = new ArrayList<String>();
-		File file = new File(XelephClaim.pathFolder+"/data/"+owner.getOwner());
+		File file = new File(SurvivalClaim.pathFolder+"/data/"+owner.getOwner());
 		YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
 		for(ClaimChunk chunk : owner.getClaims()) {claimsSerialize.add(chunk.serialize());}
 		config.set("type", owner.getType().toString());

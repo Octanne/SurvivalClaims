@@ -1,9 +1,8 @@
-package eu.octanne.xelephclaims;
+package eu.octanne.survivalclaims;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 
-//SALUT POLLUX28
 public class ClaimChunk {
 	
 	private int x, z;

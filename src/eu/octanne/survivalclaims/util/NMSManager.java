@@ -1,4 +1,4 @@
-package eu.octanne.xelephclaims.util;
+package eu.octanne.survivalclaims.util;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;

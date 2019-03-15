@@ -1,4 +1,4 @@
-package eu.octanne.xelephclaims;
+package eu.octanne.survivalclaims;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -13,7 +13,7 @@ import net.md_5.bungee.api.ChatColor;
 
 public class ClaimCommand implements CommandExecutor{
 
-	File worldFile = new File(XelephClaim.pathFolder+"/config.yml");
+	File worldFile = new File(SurvivalClaim.pathFolder+"/config.yml");
 	YamlConfiguration config = YamlConfiguration.loadConfiguration(worldFile);
 	
 	@SuppressWarnings("unchecked")
@@ -23,10 +23,10 @@ public class ClaimCommand implements CommandExecutor{
 			if(args.length > 0) {
 				if(args[0].equalsIgnoreCase("addfriend")) {
 					if(args.length >= 2) {
-						if(!XelephClaim.getClaimsManager().getClaimOwner(sender.getName()).getFriends().contains(args[1]) && !args[1].equals(sender.getName())) {
-							XelephClaim.getClaimsManager().getClaimOwner(sender.getName()).addFriend(args[1]);
+						if(!SurvivalClaim.getClaimsManager().getClaimOwner(sender.getName()).getFriends().contains(args[1]) && !args[1].equals(sender.getName())) {
+							SurvivalClaim.getClaimsManager().getClaimOwner(sender.getName()).addFriend(args[1]);
 							sender.sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+args[1].toString()+ChatColor.GREEN+" viens d'être ajouté votre liste d'ami.");
-						}else if(XelephClaim.getClaimsManager().getClaimOwner(sender.getName()).getFriends().contains(args[1])){
+						}else if(SurvivalClaim.getClaimsManager().getClaimOwner(sender.getName()).getFriends().contains(args[1])){
 							sender.sendMessage(ChatColor.RED+"Erreur: "+ChatColor.BLUE+args[1].toString()+ChatColor.RED+" est déjà dans votre liste d'ami.");
 						}else {
 							sender.sendMessage(ChatColor.RED+"Erreur: Vous ne pouvez pas vous ajouter dans votre liste d'ami.");
@@ -37,8 +37,8 @@ public class ClaimCommand implements CommandExecutor{
 				}
 				else if(args[0].equalsIgnoreCase("removefriend")) {
 					if(args.length >= 2) {
-						if(XelephClaim.getClaimsManager().getClaimOwner(sender.getName()).getFriends().contains(args[1])) {
-							XelephClaim.getClaimsManager().getClaimOwner(sender.getName()).removeFriend(args[1]);
+						if(SurvivalClaim.getClaimsManager().getClaimOwner(sender.getName()).getFriends().contains(args[1])) {
+							SurvivalClaim.getClaimsManager().getClaimOwner(sender.getName()).removeFriend(args[1]);
 							sender.sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+args[1].toString()+ChatColor.GREEN+" viens d'être supprimé de votre liste d'ami.");
 						}else {
 							sender.sendMessage(ChatColor.RED+"Erreur: "+ChatColor.BLUE+args[1].toString()+ChatColor.RED+" n'est pas dans votre liste d'ami.");
@@ -47,12 +47,12 @@ public class ClaimCommand implements CommandExecutor{
 						sender.sendMessage(ChatColor.RED+"Usage: /claim removefriend <joueur> - Supprimer un(e) ami(e)");
 					}
 				}else if(args[0].equalsIgnoreCase("map")) {
-					sender.sendMessage(XelephClaim.getClaimsManager().getMap((Player) sender));
+					sender.sendMessage(SurvivalClaim.getClaimsManager().getMap((Player) sender));
 				}else {
-					XelephClaim.getClaimsManager().openMenu((Player) sender);
+					SurvivalClaim.getClaimsManager().openMenu((Player) sender);
 				}
 			}else {
-				XelephClaim.getClaimsManager().openMenu((Player) sender);
+				SurvivalClaim.getClaimsManager().openMenu((Player) sender);
 			}
 			return true;
 		}else {

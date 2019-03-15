@@ -1,4 +1,4 @@
-package eu.octanne.xelephclaims;
+package eu.octanne.survivalclaims;
 
 import java.util.ArrayList;
 
@@ -6,7 +6,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.SkullType;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -15,15 +14,18 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
+
 import net.milkbowl.vault.economy.Economy;
 
-public class XelephClaim extends JavaPlugin{
+public class SurvivalClaim extends JavaPlugin{
 	
 	private static ClaimManager claimManager;
 	private static Economy economy = null;
 	
-	static String pathFolder = "plugins/XelephClaims";
-	static String pluginName = "XelephClaims";
+	
+	static String pathFolder = "plugins/SurvivalClaims";
+	static String pluginName = "SurvivalClaims";
 	
 	@Override
 	public void onEnable() {
@@ -32,8 +34,10 @@ public class XelephClaim extends JavaPlugin{
             economy = economyProvider.getProvider();
         }
 		claimManager = new ClaimManager();
+		
 		getCommand("claim").setExecutor(new ClaimCommand());
 		getCommand("claim").setTabCompleter(new ClaimTabCompleter());
+		claimManager.loadClaims();
 	}
 		
 	@Override
@@ -42,8 +46,7 @@ public class XelephClaim extends JavaPlugin{
 		for(ClaimOwner owner : getClaimsManager().getClaimOwners()) {
 			ClaimOwner.save(owner);
 		}
-		//KICK PLAYER FOR RELOAD
-		for(Player p : Bukkit.getOnlinePlayers()) p.kickPlayer("Rechargement du serveur !");
+		
 	}
 	
 	
@@ -98,5 +101,15 @@ public class XelephClaim extends JavaPlugin{
 	}
 	static public Economy getEconomy() {
 		return economy;
+	}
+	static public WorldGuardPlugin getWorldGuard() {
+	    Plugin plugin = Bukkit.getServer().getPluginManager().getPlugin("WorldGuard");
+	 
+	    // WorldGuard may not be loaded
+	    if (plugin == null || !(plugin instanceof WorldGuardPlugin)) {
+	        return null; // Maybe you want throw an exception instead
+	    }
+	 
+	    return (WorldGuardPlugin) plugin;
 	}
 }

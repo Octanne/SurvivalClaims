@@ -1,4 +1,4 @@
-package eu.octanne.xelephclaims.util;
+package eu.octanne.survivalclaims.util;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -12,7 +12,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import eu.octanne.xelephclaims.XelephClaim;
+import eu.octanne.survivalclaims.SurvivalClaim;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -104,7 +104,7 @@ public class AnvilGUI {
             }
         };
 
-        Bukkit.getPluginManager().registerEvents(listener, XelephClaim.getInstance()); //Replace with instance of main class
+        Bukkit.getPluginManager().registerEvents(listener, SurvivalClaim.getInstance()); //Replace with instance of main class
     }
 
     public Player getPlayer() {

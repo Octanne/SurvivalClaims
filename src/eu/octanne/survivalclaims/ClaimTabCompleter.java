@@ -1,4 +1,4 @@
-package eu.octanne.xelephclaims;
+package eu.octanne.survivalclaims;
 
 import java.util.ArrayList;
 import java.util.List;

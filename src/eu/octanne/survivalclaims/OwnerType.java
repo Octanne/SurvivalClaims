@@ -1,4 +1,4 @@
-package eu.octanne.xelephclaims;
+package eu.octanne.survivalclaims;
 
 public enum OwnerType {
 	PLAYER(), REGION();
