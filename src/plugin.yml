@@ -1,8 +1,8 @@
-main: eu.octanne.xelephclaims.XelephClaim
-name: XelephClaims
+main: eu.octanne.survivalclaims.SurvivalClaim
+name: SurvivalClaims
 author: Octanne
-version: 2.0
-depends: [Vault]
+version: 2.5
+depends: [Vault, WorldGuard]
 description: claim system area for player.
 commands:
   claim:
