@@ -11,7 +11,7 @@ système de claim de chunks par le biais d'une interface intégrant plusieurs op
 EN | SurvivalClaims is a Minecraft plugin on Spigot API, who implements in the game a 
 claim system of chunks with a GUI which gives differents options.
  - Map of claims (Chunks)
- - Differents size of area
+ - Differents size of areas
  - Donation area system
  - Friends system
 
