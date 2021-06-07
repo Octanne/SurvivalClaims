@@ -1,8 +1,9 @@
 main: eu.octanne.survivalclaims.SurvivalClaim
 name: SurvivalClaims
 author: Octanne
-version: 2.5
-depends: [Vault, WorldGuard]
+version: 2.6
+api-version: 1.16
+depends: [Vault]
 description: claim system area for player.
 commands:
   claim:

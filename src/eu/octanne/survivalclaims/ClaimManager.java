@@ -2,7 +2,6 @@ package eu.octanne.survivalclaims;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -11,7 +10,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
-import org.bukkit.SkullType;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.boss.BarColor;
@@ -37,11 +35,10 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-import eu.octanne.survivalclaims.util.AnvilGUI;
-import eu.octanne.survivalclaims.util.AnvilGUI.AnvilSlot;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
+import net.wesjd.anvilgui.AnvilGUI;
 
 public class ClaimManager implements Listener{
 	
@@ -232,63 +229,43 @@ public class ClaimManager implements Listener{
 	 * GIVE MENU
 	 */
 	private void openGiveClaimMenu(Player p) {
-		AnvilGUI menu = new AnvilGUI(p, new AnvilGUI.AnvilClickEventHandler() {
-			
-			@Override
-			public void onAnvilClick(AnvilGUI.AnvilClickEvent event) {
-				event.setWillClose(false);
-				event.setWillDestroy(false);
-				if(event.getSlot() == AnvilGUI.AnvilSlot.OUTPUT) {
-					if(Bukkit.getPlayerExact(event.getName()) != null && !getClaimOwner(p.getLocation().getChunk()).getOwner().equals(event.getName()) && 
-							(getClaimOwner(p.getLocation().getChunk()).getOwner().equals(p.getName()) || p.hasPermission("instantclaims.giveclaim.bypass"))) {
-						giveClaim(p, Bukkit.getPlayerExact(event.getName()));
-						event.getPlayer().sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+event.getName().toString()+ChatColor.GREEN+" viens d'être assigner comme propriétaire.");
-						Bukkit.getPlayerExact(event.getName()).sendMessage(ChatColor.BLUE+event.getPlayer().getName()+" §aviens de vous donner l'une de ses propriétés.");
-						event.setWillClose(true);
-						event.setWillDestroy(true);
-					}else if(Bukkit.getPlayerExact(event.getName()) != null && getClaimOwner(p.getLocation().getChunk()).getOwner().equals(p.getName())){
-						event.getPlayer().sendMessage(ChatColor.RED+"Erreur: Vous ne pouvez pas remplacer le propriétaire par lui même.");
-						event.setWillClose(true);
-						event.setWillDestroy(true);
-					}else if(!getClaimOwner(p.getLocation().getChunk()).getOwner().equals(p.getName())){
-						event.getPlayer().sendMessage(ChatColor.RED+"Erreur: Vous n'avez pas les droits sur ce claim.");
-						event.setWillClose(true);
-						event.setWillDestroy(true);
-					}else if(getClaimOwner(event.getName()) != null && getClaimOwner(event.getName()).getType().equals(OwnerType.REGION) && 
-							(p.hasPermission("instantclaims.giveclaim.bypass"))){
-						event.getPlayer().sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+event.getName().toString()+ChatColor.GREEN+" viens d'être assigner comme propriétaire.");
-						unclaim(p);
-						for(ClaimOwner cp : ownerClaim) {
-							if(cp.hasClaim(p.getLocation().getChunk())) return;
-						}
-						getClaimOwner(event.getName()).addClaim(p.getLocation().getChunk());
-						event.setWillClose(true);
-						event.setWillDestroy(true);
-					}else {
-						event.getPlayer().sendMessage(ChatColor.RED+"Erreur: Le joueur saisis n'est pas correcte.");
-						event.setWillClose(true);
-						event.setWillDestroy(true);
-					}
-				}
-			}
-		});
 		//FRIEND ITEM
-		ItemStack changeProprioItem;
 		ArrayList<String> loreADD = new ArrayList<String>();
 		loreADD.add("§eDonner ce claim:");
 		loreADD.add("§7Entrer le nom du nouveau propriétaire,");
 		loreADD.add("§e> §7Renommer l'item pour valider.");
-		changeProprioItem = SurvivalClaim.createItemStack("Propriétaire", Material.PAPER, 1, loreADD, 0, true);
-		menu.setSlot(AnvilSlot.INPUT_LEFT, changeProprioItem);
-		try {
-			menu.open();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			e.printStackTrace();
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		}
+		ItemStack changeProprioItem = SurvivalClaim.createItemStack("Propriétaire", Material.PAPER, 1, loreADD, false, false);
+		
+		new AnvilGUI.Builder().onClose(player -> {
+			player.sendMessage(ChatColor.RED+"Erreur: La saisie est annulée.");
+		}).onComplete((player, text) -> {
+			if(Bukkit.getPlayerExact(text) != null && !getClaimOwner(player.getLocation().getChunk()).getOwner().equals(text) && 
+					(getClaimOwner(p.getLocation().getChunk()).getOwner().equals(player.getName()) || player.hasPermission("instantclaims.giveclaim.bypass"))) {
+				giveClaim(p, Bukkit.getPlayerExact(text));
+				player.sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+text+ChatColor.GREEN+" viens d'être assigner comme propriétaire.");
+				Bukkit.getPlayerExact(text).sendMessage(ChatColor.BLUE+player.getName()+" §aviens de vous donner l'une de ses propriétés.");
+				return AnvilGUI.Response.close();
+			}else if(Bukkit.getPlayerExact(text) != null && getClaimOwner(p.getLocation().getChunk()).getOwner().equals(player.getName())){
+				player.sendMessage(ChatColor.RED+"Erreur: Vous ne pouvez pas remplacer le propriétaire par lui même.");
+				return AnvilGUI.Response.close();
+			}else if(!getClaimOwner(player.getLocation().getChunk()).getOwner().equals(player.getName())){
+				player.sendMessage(ChatColor.RED+"Erreur: Vous n'avez pas les droits sur ce claim.");
+				return AnvilGUI.Response.close();
+			}else if(getClaimOwner(text) != null && getClaimOwner(text).getType().equals(OwnerType.REGION) && 
+					(p.hasPermission("instantclaims.giveclaim.bypass"))){
+				player.sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+text+ChatColor.GREEN+" viens d'être assigner comme propriétaire.");
+				unclaim(p);
+				for(ClaimOwner cp : ownerClaim) {
+					if(cp.hasClaim(p.getLocation().getChunk())) return AnvilGUI.Response.close();
+				}
+				getClaimOwner(text).addClaim(p.getLocation().getChunk());
+				return AnvilGUI.Response.close();
+			}else {
+				player.sendMessage(ChatColor.RED+"Erreur: Le joueur saisis n'est pas correcte.");
+				return AnvilGUI.Response.close();
+			}
+		}).text("Nom du nouveau propriétaire").itemLeft(changeProprioItem)
+		.title("Entrer le nouveau propriétaire").plugin(SurvivalClaim.getInstance()).open(p);
 	}
 	
 	/*
@@ -370,49 +347,32 @@ public class ClaimManager implements Listener{
 	 * MENU FRIENDS
 	 */
 	private void openAddFriendMenu(Player p) {
-		AnvilGUI menu = new AnvilGUI(p, new AnvilGUI.AnvilClickEventHandler() {
-			
-			@Override
-			public void onAnvilClick(AnvilGUI.AnvilClickEvent event) {
-				event.setWillClose(false);
-				event.setWillDestroy(false);
-				if(event.getSlot() == AnvilGUI.AnvilSlot.OUTPUT) {
-					if(!SurvivalClaim.getClaimsManager().getClaimOwner(event.getPlayer().getName()).getFriends().contains(event.getName()) && !event.getName().equals(event.getPlayer().getName())) {
-						SurvivalClaim.getClaimsManager().getClaimOwner(event.getPlayer().getName()).addFriend(event.getName());
-						event.getPlayer().sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+event.getName().toString()+ChatColor.GREEN+" viens d'être ajouté votre liste d'ami.");
-						if(Bukkit.getPlayer(event.getName())!= null)Bukkit.getPlayer(event.getName()).sendMessage(ChatColor.BLUE+event.getPlayer().getName()+" §aviens de vous ajouter en ami.");
-						openFriendMenu(event.getPlayer());
-						event.setWillDestroy(true);
-					}else if(SurvivalClaim.getClaimsManager().getClaimOwner(event.getPlayer().getName()).getFriends().contains(event.getName())){
-						event.getPlayer().sendMessage(ChatColor.RED+"Erreur: "+ChatColor.BLUE+event.getName().toString()+ChatColor.RED+" est déjà dans votre liste d'ami.");
-						openFriendMenu(event.getPlayer());
-						event.setWillDestroy(true);
-					}else {
-						event.getPlayer().sendMessage(ChatColor.RED+"Erreur: Vous ne pouvez pas vous ajouter dans votre liste d'ami.");
-						openFriendMenu(event.getPlayer());
-						event.setWillDestroy(true);
-					}
-				}
-			}
-		});
 		//FRIEND ITEM
-		ItemStack addFriendItem;
 		ArrayList<String> loreADD = new ArrayList<String>();
 		loreADD.add("§aAjouter un(e) ami(e):");
 		loreADD.add("§7Entrer le nom du joueur à ajouter,");
 		loreADD.add("§e> §7Renommer l'item pour valider.");
-		addFriendItem = SurvivalClaim.createItemStack("Pseudo", Material.PAPER, 1, loreADD, 0, true);
-		menu.setSlot(AnvilSlot.INPUT_LEFT, addFriendItem);
-		try {
-			menu.open();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			e.printStackTrace();
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		}
+		ItemStack addFriendItem = SurvivalClaim.createItemStack("Pseudo", Material.PAPER, 1, loreADD, false ,false);
+
+		new AnvilGUI.Builder().onClose(player -> {
+			player.sendMessage(ChatColor.RED+"Erreur: La saisie est annulée.");
+		}).onComplete((player, text) -> {
+			if(!SurvivalClaim.getClaimsManager().getClaimOwner(player.getName()).getFriends().contains(text) && !text.equals(player.getName())) {
+				SurvivalClaim.getClaimsManager().getClaimOwner(player.getName()).addFriend(text);
+				player.sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+text+ChatColor.GREEN+" viens d'être ajouté votre liste d'ami.");
+				if(Bukkit.getPlayer(text)!= null)Bukkit.getPlayer(text).sendMessage(ChatColor.BLUE+player.getName()+" §aviens de vous ajouter en ami.");
+				return AnvilGUI.Response.openInventory(createFriendMenu(p));
+			}else if(SurvivalClaim.getClaimsManager().getClaimOwner(player.getName()).getFriends().contains(text)){
+				player.sendMessage(ChatColor.RED+"Erreur: "+ChatColor.BLUE+text+ChatColor.RED+" est déjà dans votre liste d'ami.");
+				return AnvilGUI.Response.openInventory(createFriendMenu(p));
+			}else {
+				player.sendMessage(ChatColor.RED+"Erreur: Vous ne pouvez pas vous ajouter dans votre liste d'ami.");
+				return AnvilGUI.Response.openInventory(createFriendMenu(p));
+			}
+		}).text("Pseudo").itemLeft(addFriendItem)
+		.title("Entrer le nom de l'ami").plugin(SurvivalClaim.getInstance()).open(p);
 	}
+	
 	public boolean openFriendMenu(Player p, int page) {
 		Inventory friends = Bukkit.createInventory(null, 27, "§6Survival§cClaim - Amis");
 
@@ -432,7 +392,7 @@ public class ClaimManager implements Listener{
 			lore.add(ChatColor.GRAY+"Pour retirer des amis");
 			while(numOffer < getClaimOwner(p.getName()).getFriends().size()){
 				if(friends.getItem(17) == null) {
-					friends.setItem(numSlot, SurvivalClaim.createSkull(getClaimOwner(p.getName()).getFriends().get(numOffer), lore, SkullType.PLAYER, getClaimOwner(p.getName()).getFriends().get(numOffer), false));
+					friends.setItem(numSlot, SurvivalClaim.createItemSkull(getClaimOwner(p.getName()).getFriends().get(numOffer), lore, getClaimOwner(p.getName()).getFriends().get(numOffer), false));
 					numSlot++;
 					numOffer++;
 				}else {
@@ -446,20 +406,20 @@ public class ClaimManager implements Listener{
 		ArrayList<String> lorePS = new ArrayList<String>();
 		lorePS.add(ChatColor.GRAY+"Page: "+ page +"/"+ pageT);
 		lorePS.add(ChatColor.GRAY+"Page actuelle : "+ page);
-		friends.setItem(26, SurvivalClaim.createItemStack(ChatColor.GRAY+"Page Suivante ", Material.MAP, 1, lorePS, 0, false));
+		friends.setItem(26, SurvivalClaim.createItemStack(ChatColor.GRAY+"Page Suivante ", Material.MAP, 1, lorePS, false, false));
 		//Page prec
 		ArrayList<String> lorePP = new ArrayList<String>();
 		lorePP.add(ChatColor.GRAY+"Page: "+ page +"/"+ pageT);
 		lorePP.add(ChatColor.GRAY+"Page actuelle : "+ page);
-		friends.setItem(18, SurvivalClaim.createItemStack(ChatColor.GRAY+"Page Précédente ", Material.MAP, 1, lorePP, 0, false));
+		friends.setItem(18, SurvivalClaim.createItemStack(ChatColor.GRAY+"Page Précédente ", Material.MAP, 1, lorePP, false, false));
 		//RETURN
 		ArrayList<String> loreR = new ArrayList<String>();
 		lorePP.add(ChatColor.GRAY+"Retour au menu");
-		friends.setItem(19, SurvivalClaim.createItemStack(ChatColor.RED+"Retour", Material.ARROW, 1, loreR, 0, false));
+		friends.setItem(19, SurvivalClaim.createItemStack(ChatColor.RED+"Retour", Material.ARROW, 1, loreR, false, false));
 		//ADD FRIEND
 		ArrayList<String> loreAddF = new ArrayList<String>();
 		loreAddF.add(ChatColor.GREEN+"Ajouter un(e) ami(e)");
-		friends.setItem(22, SurvivalClaim.createItemStack(ChatColor.BLUE+"Ajouter ami(e)", Material.PAPER, 1, loreR, 0, false));
+		friends.setItem(22, SurvivalClaim.createItemStack(ChatColor.BLUE+"Ajouter ami(e)", Material.PAPER, 1, loreR, false, false));
 		//INFO FRIEND
 		ArrayList<String> loreInfo = new ArrayList<String>();
 		loreInfo.add(ChatColor.GRAY+"Les commandes:");
@@ -467,10 +427,70 @@ public class ClaimManager implements Listener{
 		loreInfo.add(ChatColor.GREEN+"- /claim addfriend <joueur>");
 		loreInfo.add(ChatColor.RED+"Supprimer un(e) ami(e)");
 		loreInfo.add(ChatColor.RED+"- /claim removefriend <joueur>");
-		friends.setItem(25, SurvivalClaim.createItemStack(ChatColor.BLUE+"Informations", Material.REDSTONE_TORCH_ON, 1, loreInfo, 0, false));
+		friends.setItem(25, SurvivalClaim.createItemStack(ChatColor.BLUE+"Informations", Material.REDSTONE_TORCH, 1, loreInfo, false, false));
 		p.openInventory(friends);
 		return true;
 	}
+	
+	public Inventory createFriendMenu(Player p) {
+		int page = 1;
+		Inventory friends = Bukkit.createInventory(null, 27, "§6Survival§cClaim - Amis");
+
+		int pageT = 0;
+		int nbrO = 0;
+		for(int nbr = 1; nbrO <= getClaimOwner(p.getName()).getFriends().size(); nbr++) {
+			nbrO = 18*nbr;
+		}
+		pageT = nbrO/18;
+
+		//SET OFFER
+		if(getClaimOwner(p.getName()).getFriends().size() != 0) {	
+			int numOffer = 0;
+			int numSlot = 0;
+			ArrayList<String> lore = new ArrayList<String>();
+			lore.add(ChatColor.RED+"Shift-Click");
+			lore.add(ChatColor.GRAY+"Pour retirer des amis");
+			while(numOffer < getClaimOwner(p.getName()).getFriends().size()){
+				if(friends.getItem(17) == null) {
+					friends.setItem(numSlot, SurvivalClaim.createItemSkull(getClaimOwner(p.getName()).getFriends().get(numOffer), lore, getClaimOwner(p.getName()).getFriends().get(numOffer), false));
+					numSlot++;
+					numOffer++;
+				}else {
+					break;
+				}
+			}
+		}
+
+		//NAVIGATE BAR
+		//Page suivante
+		ArrayList<String> lorePS = new ArrayList<String>();
+		lorePS.add(ChatColor.GRAY+"Page: "+ page +"/"+ pageT);
+		lorePS.add(ChatColor.GRAY+"Page actuelle : "+ page);
+		friends.setItem(26, SurvivalClaim.createItemStack(ChatColor.GRAY+"Page Suivante ", Material.MAP, 1, lorePS, false, false));
+		//Page prec
+		ArrayList<String> lorePP = new ArrayList<String>();
+		lorePP.add(ChatColor.GRAY+"Page: "+ page +"/"+ pageT);
+		lorePP.add(ChatColor.GRAY+"Page actuelle : "+ page);
+		friends.setItem(18, SurvivalClaim.createItemStack(ChatColor.GRAY+"Page Précédente ", Material.MAP, 1, lorePP, false, false));
+		//RETURN
+		ArrayList<String> loreR = new ArrayList<String>();
+		lorePP.add(ChatColor.GRAY+"Retour au menu");
+		friends.setItem(19, SurvivalClaim.createItemStack(ChatColor.RED+"Retour", Material.ARROW, 1, loreR, false, false));
+		//ADD FRIEND
+		ArrayList<String> loreAddF = new ArrayList<String>();
+		loreAddF.add(ChatColor.GREEN+"Ajouter un(e) ami(e)");
+		friends.setItem(22, SurvivalClaim.createItemStack(ChatColor.BLUE+"Ajouter ami(e)", Material.PAPER, 1, loreR, false, false));
+		//INFO FRIEND
+		ArrayList<String> loreInfo = new ArrayList<String>();
+		loreInfo.add(ChatColor.GRAY+"Les commandes:");
+		loreInfo.add(ChatColor.GREEN+"Ajouter un(e) ami(e)");
+		loreInfo.add(ChatColor.GREEN+"- /claim addfriend <joueur>");
+		loreInfo.add(ChatColor.RED+"Supprimer un(e) ami(e)");
+		loreInfo.add(ChatColor.RED+"- /claim removefriend <joueur>");
+		friends.setItem(25, SurvivalClaim.createItemStack(ChatColor.BLUE+"Informations", Material.REDSTONE_TORCH, 1, loreInfo, false, false));
+		return friends;
+	}
+	
 	public boolean openFriendMenu(Player p) {
 		int page = 1;
 		Inventory friends = Bukkit.createInventory(null, 27, "§6Survival§cClaim - Amis");
@@ -491,7 +511,7 @@ public class ClaimManager implements Listener{
 			lore.add(ChatColor.GRAY+"Pour retirer des amis");
 			while(numOffer < getClaimOwner(p.getName()).getFriends().size()){
 				if(friends.getItem(17) == null) {
-					friends.setItem(numSlot, SurvivalClaim.createSkull(getClaimOwner(p.getName()).getFriends().get(numOffer), lore, SkullType.PLAYER, getClaimOwner(p.getName()).getFriends().get(numOffer), false));
+					friends.setItem(numSlot, SurvivalClaim.createItemSkull(getClaimOwner(p.getName()).getFriends().get(numOffer), lore, getClaimOwner(p.getName()).getFriends().get(numOffer), false));
 					numSlot++;
 					numOffer++;
 				}else {
@@ -505,20 +525,20 @@ public class ClaimManager implements Listener{
 		ArrayList<String> lorePS = new ArrayList<String>();
 		lorePS.add(ChatColor.GRAY+"Page: "+ page +"/"+ pageT);
 		lorePS.add(ChatColor.GRAY+"Page actuelle : "+ page);
-		friends.setItem(26, SurvivalClaim.createItemStack(ChatColor.GRAY+"Page Suivante ", Material.MAP, 1, lorePS, 0, false));
+		friends.setItem(26, SurvivalClaim.createItemStack(ChatColor.GRAY+"Page Suivante ", Material.MAP, 1, lorePS, false, false));
 		//Page prec
 		ArrayList<String> lorePP = new ArrayList<String>();
 		lorePP.add(ChatColor.GRAY+"Page: "+ page +"/"+ pageT);
 		lorePP.add(ChatColor.GRAY+"Page actuelle : "+ page);
-		friends.setItem(18, SurvivalClaim.createItemStack(ChatColor.GRAY+"Page Précédente ", Material.MAP, 1, lorePP, 0, false));
+		friends.setItem(18, SurvivalClaim.createItemStack(ChatColor.GRAY+"Page Précédente ", Material.MAP, 1, lorePP, false, false));
 		//RETURN
 		ArrayList<String> loreR = new ArrayList<String>();
 		lorePP.add(ChatColor.GRAY+"Retour au menu");
-		friends.setItem(19, SurvivalClaim.createItemStack(ChatColor.RED+"Retour", Material.ARROW, 1, loreR, 0, false));
+		friends.setItem(19, SurvivalClaim.createItemStack(ChatColor.RED+"Retour", Material.ARROW, 1, loreR, false, false));
 		//ADD FRIEND
 		ArrayList<String> loreAddF = new ArrayList<String>();
 		loreAddF.add(ChatColor.GREEN+"Ajouter un(e) ami(e)");
-		friends.setItem(22, SurvivalClaim.createItemStack(ChatColor.BLUE+"Ajouter ami(e)", Material.PAPER, 1, loreR, 0, false));
+		friends.setItem(22, SurvivalClaim.createItemStack(ChatColor.BLUE+"Ajouter ami(e)", Material.PAPER, 1, loreR, false, false));
 		//INFO FRIEND
 		ArrayList<String> loreInfo = new ArrayList<String>();
 		loreInfo.add(ChatColor.GRAY+"Les commandes:");
@@ -526,7 +546,7 @@ public class ClaimManager implements Listener{
 		loreInfo.add(ChatColor.GREEN+"- /claim addfriend <joueur>");
 		loreInfo.add(ChatColor.RED+"Supprimer un(e) ami(e)");
 		loreInfo.add(ChatColor.RED+"- /claim removefriend <joueur>");
-		friends.setItem(25, SurvivalClaim.createItemStack(ChatColor.BLUE+"Informations", Material.REDSTONE_TORCH_ON, 1, loreInfo, 0, false));
+		friends.setItem(25, SurvivalClaim.createItemStack(ChatColor.BLUE+"Informations", Material.REDSTONE_TORCH, 1, loreInfo, false, false));
 		p.openInventory(friends);
 		return true;
 	}
@@ -545,68 +565,68 @@ public class ClaimManager implements Listener{
 		BigDecimal bd = new BigDecimal(money).setScale(2, RoundingMode.HALF_EVEN);
 		loreInfo.add(ChatColor.RED+"Argent: "+ChatColor.BLUE+""+bd.doubleValue());
 		loreInfo.add(ChatColor.RED+"Nb Claim: "+ChatColor.BLUE+""+this.getClaimOwner(player.getName()).getClaims().size());
-		ItemStack infoHead = SurvivalClaim.createSkull(ChatColor.GRAY+"Informations", loreInfo, SkullType.PLAYER, player.getName(), false);
+		ItemStack infoHead = SurvivalClaim.createItemSkull(ChatColor.GRAY+"Informations", loreInfo, player.getName(), false);
 		inv.setItem(0, infoHead);
 		
 		//FRIEND
 		ArrayList<String> loreFriend = new ArrayList<String>();
 		loreFriend.add(ChatColor.GRAY+"Clique pour ouvrir le menu");
-		ItemStack infoFriend = SurvivalClaim.createItemStack(ChatColor.BLUE+"Ajouter ami(e)", Material.NETHER_STAR, 1, loreFriend, 0, true);
+		ItemStack infoFriend = SurvivalClaim.createItemStack(ChatColor.BLUE+"Ajouter ami(e)", Material.NETHER_STAR, 1, loreFriend, true, false);
 		inv.setItem(18, infoFriend);
 		
 		//CLOSE
 		ArrayList<String> loreClose = new ArrayList<String>();
-		ItemStack closeBarrier = SurvivalClaim.createItemStack(ChatColor.RED+"Fermer", Material.BARRIER, 1, loreClose, 0, false);
+		ItemStack closeBarrier = SurvivalClaim.createItemStack(ChatColor.RED+"Fermer", Material.BARRIER, 1, loreClose, false, false);
 		inv.setItem(26, closeBarrier);
 		
 		//MAP
 		ArrayList<String> loreMap = new ArrayList<String>();
 		loreMap.add("§7Statut: "+this.getStatutMap(player));
-		ItemStack mapItem = SurvivalClaim.createItemStack(ChatColor.BLUE+"Map", Material.MAP, 1, loreMap, 0, false);
+		ItemStack mapItem = SurvivalClaim.createItemStack(ChatColor.BLUE+"Map", Material.MAP, 1, loreMap, false, false);
 		inv.setItem(19, mapItem);
 		
 		//CLAIMS
 		ArrayList<String> loreClaimsDirt = new ArrayList<String>();
 		loreClaimsDirt.add("§aPrix: "+amountPriceClaims.toArray()[0]+"£");
 		loreClaimsDirt.add("§cTaille: 1 Chunk");
-		ItemStack claimDirt = SurvivalClaim.createItemStack(ChatColor.BLUE+"Claim (16X16)", Material.DIRT, 1, loreClaimsDirt, 0, false);
+		ItemStack claimDirt = SurvivalClaim.createItemStack(ChatColor.BLUE+"Claim (16X16)", Material.DIRT, 1, loreClaimsDirt, false, false);
 		inv.setItem(12, claimDirt);
 		
 		ArrayList<String> loreClaimsGrass = new ArrayList<String>();
 		loreClaimsGrass.add("§aPrix: "+amountPriceClaims.toArray()[1]+"£");
 		loreClaimsGrass.add("§cTaille: 2 Chunks X 2 Chunks");
-		ItemStack claimGrass = SurvivalClaim.createItemStack(ChatColor.BLUE+"Claim (32X32)", Material.GRASS, 1, loreClaimsGrass, 0, false);
+		ItemStack claimGrass = SurvivalClaim.createItemStack(ChatColor.BLUE+"Claim (32X32)", Material.GRASS, 1, loreClaimsGrass, false, false);
 		inv.setItem(13, claimGrass);
 		
 		ArrayList<String> loreClaimsStone = new ArrayList<String>();
 		loreClaimsStone.add("§aPrix: "+amountPriceClaims.toArray()[2]+"£");
 		loreClaimsStone.add("§cTaille: 3 Chunks X 3 Chunks");
-		ItemStack claimStone = SurvivalClaim.createItemStack(ChatColor.BLUE+"Claim (48X48)", Material.STONE, 1, loreClaimsStone, 0, false);
+		ItemStack claimStone = SurvivalClaim.createItemStack(ChatColor.BLUE+"Claim (48X48)", Material.STONE, 1, loreClaimsStone, false, false);
 		inv.setItem(14, claimStone);
 		
 		//UNCLAIM
 		ArrayList<String> loreUnclaim =new ArrayList<String>();
 		loreUnclaim.add("§bUnclaim un de vos chunks");
-		ItemStack unclaim = SurvivalClaim.createItemStack(ChatColor.BLUE+"Unclaim (16X16)", Material.MYCEL, 1, loreUnclaim, 0, true);
+		ItemStack unclaim = SurvivalClaim.createItemStack(ChatColor.BLUE+"Unclaim (16X16)", Material.MYCELIUM, 1, loreUnclaim, true, false);
 		inv.setItem(8, unclaim);
 		
 		//GIVECLAIM
 		ArrayList<String> loreGiveclaim = new ArrayList<String>();
 		loreGiveclaim.add("§bDonner un de vos chunks");
-		ItemStack giveclaim = SurvivalClaim.createItemStack(ChatColor.BLUE+"Donner un Claim (16X16)", Material.BOOK_AND_QUILL, 1, loreGiveclaim, 0, true);
+		ItemStack giveclaim = SurvivalClaim.createItemStack(ChatColor.BLUE+"Donner un Claim (16X16)", Material.WRITABLE_BOOK, 1, loreGiveclaim, true, false);
 		inv.setItem(25, giveclaim);
 		
 		if(player.hasPermission("instantclaims.admin")) {
 			/*ArrayList<String> loreClaimsAdmin = new ArrayList<String>();
 			loreClaimsAdmin.add("§aPrix: "+amountPriceClaims.toArray()[3]+"£");
 			loreClaimsAdmin.add("§cTaille: 5 Chunks X 5 Chunks");
-			ItemStack claimAdmin = SurvivalClaim.createItemStack(ChatColor.RED+"Claim (80X80)", Material.GOLD_BLOCK, 1, loreClaimsAdmin, 0, false);
+			ItemStack claimAdmin = SurvivalClaim.createItemStack(ChatColor.RED+"Claim (80X80)", Material.GOLD_BLOCK, 1, loreClaimsAdmin, false, false);
 			inv.setItem(22, claimAdmin);*/
 			
 			ArrayList<String> loreUnclaimAdmin = new ArrayList<String>();
 			loreUnclaimAdmin.add("§bUnclaim un chunk");
 			loreUnclaimAdmin.add("§cTaille: 1 Chunk");
-			ItemStack unclaimAdmin = SurvivalClaim.createItemStack(ChatColor.RED+"Unclaim (16X16)", Material.MYCEL, 1, loreUnclaimAdmin, 0, true);
+			ItemStack unclaimAdmin = SurvivalClaim.createItemStack(ChatColor.RED+"Unclaim (16X16)", Material.MYCELIUM, 1, loreUnclaimAdmin, true, false);
 			inv.setItem(8, unclaimAdmin);
 		}
 		
@@ -848,17 +868,12 @@ public class ClaimManager implements Listener{
 	@EventHandler
 	public void onPlaceBlock(BlockPlaceEvent e) {
 		if(this.isClaim(e.getBlock().getChunk())) {
-			if(this.getClaimOwner(e.getBlock().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getBlock().getChunk()).getOwner().equals(e.getPlayer().getName()) 
-					|| (SurvivalClaim.getWorldGuard().canBuild(e.getPlayer(), e.getBlock().getLocation()) && this.getClaimOwner(e.getBlock().getChunk()).getType().equals(OwnerType.REGION))) {
-				
-			}else {
+			if(!(this.getClaimOwner(e.getBlock().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getBlock().getChunk()).getOwner().equals(e.getPlayer().getName()) 
+					|| (e.canBuild() 
+							&& this.getClaimOwner(e.getBlock().getChunk()).getType().equals(OwnerType.REGION)))) {
 				if(!e.getPlayer().hasPermission("instantclaims.claims.bypass")) {
 					//MESSAGE
-					if(this.getClaimOwner(e.getBlock().getChunk()).getOwner().equals("_Obe")) {
-						e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED+"§c⚠ Vous n'êtes pas autorisé ⚠ (Zone protégé par Yazhmog)"));
-					}else {
-						e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED+"§c⚠ Vous n'êtes pas autorisé ⚠ (Zone protégé par "+this.getClaimOwner(e.getBlock().getChunk()).getOwner()+")"));
-					}
+					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED+"§c⚠ Vous n'êtes pas autorisé ⚠ (Zone protégé par "+this.getClaimOwner(e.getBlock().getChunk()).getOwner()+")"));
 					e.setCancelled(true);
 				}else if(this.getClaimOwner(e.getBlock().getChunk()).getType().equals(OwnerType.PLAYER)){
 					//MESSAGE
@@ -870,17 +885,12 @@ public class ClaimManager implements Listener{
 	@EventHandler
 	public void onBreakBlock(BlockBreakEvent e) {
 		if(this.isClaim(e.getBlock().getChunk())) {
-			if(this.getClaimOwner(e.getBlock().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getBlock().getChunk()).getOwner().equals(e.getPlayer().getName()) 
-					|| (SurvivalClaim.getWorldGuard().canBuild(e.getPlayer(), e.getBlock().getLocation()) && this.getClaimOwner(e.getBlock().getChunk()).getType().equals(OwnerType.REGION))) {
-				
-			}else {
+			if(!(this.getClaimOwner(e.getBlock().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getBlock().getChunk()).getOwner().equals(e.getPlayer().getName()) 
+					|| (!e.isCancelled() 
+							&& this.getClaimOwner(e.getBlock().getChunk()).getType().equals(OwnerType.REGION)))) {
 				if(!e.getPlayer().hasPermission("instantclaims.claims.bypass")) {
 					//MESSAGE
-					if(this.getClaimOwner(e.getBlock().getChunk()).getOwner().equals("_Obe")) {
-						e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED+"§c⚠ Vous n'êtes pas autorisé ⚠ (Zone protégé par Yazhmog)"));
-					}else {
-						e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED+"§c⚠ Vous n'êtes pas autorisé ⚠ (Zone protégé par "+this.getClaimOwner(e.getBlock().getChunk()).getOwner()+")"));
-					}
+					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED+"§c⚠ Vous n'êtes pas autorisé ⚠ (Zone protégé par "+this.getClaimOwner(e.getBlock().getChunk()).getOwner()+")"));
 					e.setCancelled(true);
 				}else if(this.getClaimOwner(e.getBlock().getChunk()).getType().equals(OwnerType.PLAYER)){
 					//MESSAGE
@@ -894,10 +904,9 @@ public class ClaimManager implements Listener{
 		if(this.isClaim(e.getRightClicked().getLocation().getChunk()) && (e.getRightClicked().getType().equals(EntityType.ITEM_FRAME) || e.getRightClicked().getType().equals(EntityType.BOAT) ||
 				e.getRightClicked().getType().equals(EntityType.ENDER_CRYSTAL) || e.getRightClicked().getType().equals(EntityType.ARMOR_STAND) || e.getRightClicked().getType().equals(EntityType.HORSE) ||
 				e.getRightClicked().getType().equals(EntityType.PAINTING)) 
-				|| (SurvivalClaim.getWorldGuard().canBuild(e.getPlayer(), e.getRightClicked().getLocation()) && this.getClaimOwner(e.getRightClicked().getLocation().getChunk()).getType().equals(OwnerType.REGION))) {
-			if(this.getClaimOwner(e.getRightClicked().getLocation().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getRightClicked().getLocation().getChunk()).getOwner().equals(e.getPlayer().getName())) {
-				
-			}else {
+				|| (!e.isCancelled() && this.getClaimOwner(e.getRightClicked().getLocation().getChunk()).getType().equals(OwnerType.REGION))) {
+			if(!(this.getClaimOwner(e.getRightClicked().getLocation().getChunk()).isFriend(e.getPlayer().getName()) || 
+					this.getClaimOwner(e.getRightClicked().getLocation().getChunk()).getOwner().equals(e.getPlayer().getName()))) {
 				if(!e.getPlayer().hasPermission("instantclaims.claims.bypass")) {
 					//MESSAGE
 					if(this.getClaimOwner(e.getRightClicked().getLocation().getChunk()).getOwner().equals("_Obe")) {
@@ -913,13 +922,12 @@ public class ClaimManager implements Listener{
 			}
 		}
 	}
+	@SuppressWarnings("deprecation")
 	@EventHandler
 	public void onInteractBlock(PlayerInteractEvent e) {
-		if(e.getClickedBlock() != null && this.isClaim(e.getClickedBlock().getChunk()) && !(e.getClickedBlock().getType().equals(Material.WORKBENCH) || e.getClickedBlock().getType().equals(Material.ENDER_CHEST))) {
-			if(this.getClaimOwner(e.getClickedBlock().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getClickedBlock().getChunk()).getOwner().equals(e.getPlayer().getName())
-					|| (SurvivalClaim.getWorldGuard().canBuild(e.getPlayer(), e.getClickedBlock().getLocation()) && this.getClaimOwner(e.getClickedBlock().getChunk()).getType().equals(OwnerType.REGION))) {
-				
-			}else {
+		if(e.getClickedBlock() != null && this.isClaim(e.getClickedBlock().getChunk()) && !(e.getClickedBlock().getType().equals(Material.CRAFTING_TABLE) || e.getClickedBlock().getType().equals(Material.ENDER_CHEST))) {
+			if(!(this.getClaimOwner(e.getClickedBlock().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getClickedBlock().getChunk()).getOwner().equals(e.getPlayer().getName())
+					|| (!e.isCancelled() && this.getClaimOwner(e.getClickedBlock().getChunk()).getType().equals(OwnerType.REGION)))) {
 				if(!e.getPlayer().hasPermission("instantclaims.claims.bypass") && this.getClaimOwner(e.getClickedBlock().getChunk()).getType().equals(OwnerType.PLAYER)) {
 					//MESSAGE
 					if(this.getClaimOwner(e.getClickedBlock().getLocation().getChunk()).getOwner().equals("_Obe")) {
@@ -1001,17 +1009,17 @@ public class ClaimManager implements Listener{
 	 */
 	@EventHandler
 	public void onDragInventory(InventoryDragEvent e) {
-		if(e.getInventory() != null && e.getInventory().getName().equals("§6Survival§cClaim")) {
+		if(e.getInventory() != null && e.getView().getTitle().equals("§6Survival§cClaim")) {
 			e.setCancelled(true);
 		}
-		if(e.getInventory() != null && e.getInventory().getName().equals("§6Survival§cClaim - Amis")) {
+		if(e.getInventory() != null && e.getView().getTitle().equals("§6Survival§cClaim - Amis")) {
 			e.setCancelled(true);
 		}
 	}
 	@SuppressWarnings("deprecation")
 	@EventHandler
 	public void onClickInventory(InventoryClickEvent e) {
-		if(e.getClickedInventory() != null && e.getClickedInventory().getName().equals("§6Survival§cClaim - Amis")) {
+		if(e.getClickedInventory() != null && e.getView().getTitle().equals("§6Survival§cClaim - Amis")) {
 			e.setCancelled(true);
 			//PAGE SUIVANTE
 			if(e.getCurrentItem().equals(e.getInventory().getItem(26)) && e.getInventory().getItem(26).hasItemMeta() && e.getInventory().getItem(26).getItemMeta().hasDisplayName()) {
@@ -1053,7 +1061,7 @@ public class ClaimManager implements Listener{
 				}
 			}
 		}
-		if(e.getClickedInventory() != null && e.getClickedInventory().getName().equals("§6Survival§cClaim")) {
+		if(e.getClickedInventory() != null && e.getView().getTitle().equals("§6Survival§cClaim")) {
 			if(e.getCurrentItem() != null && e.getCurrentItem().getType().equals(Material.BARRIER)) {
 				e.getWhoClicked().closeInventory();
 				((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.BLOCK_WOODEN_TRAPDOOR_CLOSE, 1.0F, 1.0F);
@@ -1070,7 +1078,7 @@ public class ClaimManager implements Listener{
 				this.openMenu((Player) e.getWhoClicked());
 			}
 			//UNCLAIM
-			if(e.getCurrentItem() != null && e.getCurrentItem().getType().equals(Material.MYCEL)) {
+			if(e.getCurrentItem() != null && e.getCurrentItem().getType().equals(Material.MYCELIUM)) {
 				if(this.isClaim(e.getWhoClicked().getLocation().getChunk()) && (e.getWhoClicked().getName().equals(this.getClaimOwner(e.getWhoClicked().getLocation().getChunk()).getOwner()) || e.getWhoClicked().hasPermission("instantclaims.unclaim.bypass"))) {
 					this.unclaim((Player) e.getWhoClicked());
 					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.0F, 1.0F);
@@ -1079,17 +1087,17 @@ public class ClaimManager implements Listener{
 				}else if(!e.getWhoClicked().getName().equals(this.getClaimOwner(e.getWhoClicked().getLocation().getChunk()).getOwner()) 
 						&& this.isClaim(e.getWhoClicked().getLocation().getChunk())){
 					e.getWhoClicked().sendMessage("§cErreur: Ce chunk ne vous appartient pas.");
-					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMEN_HURT, 1.0F, 1.0F);
+					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
 					e.getWhoClicked().closeInventory();
 				}else {
 					e.getWhoClicked().sendMessage("§cErreur: Ce chunk n'appartient à personne.");
-					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMEN_HURT, 1.0F, 1.0F);
+					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
 					e.getWhoClicked().closeInventory();
 				}
 				
 			}
 			//GIVECLAIM
-			if(e.getCurrentItem() != null && e.getCurrentItem().getType().equals(Material.BOOK_AND_QUILL)) {
+			if(e.getCurrentItem() != null && e.getCurrentItem().getType().equals(Material.WRITABLE_BOOK)) {
 				if(this.isClaim(e.getWhoClicked().getLocation().getChunk()) && (e.getWhoClicked().getName().equals(this.getClaimOwner(e.getWhoClicked().getLocation().getChunk()).getOwner()) || e.getWhoClicked().hasPermission("instantclaims.giveclaim.bypass"))) {
 					e.getWhoClicked().closeInventory();
 					openGiveClaimMenu((Player)e.getWhoClicked());
@@ -1097,11 +1105,11 @@ public class ClaimManager implements Listener{
 				}else if(!e.getWhoClicked().getName().equals(this.getClaimOwner(e.getWhoClicked().getLocation().getChunk()).getOwner()) 
 						&& this.isClaim(e.getWhoClicked().getLocation().getChunk())){
 					e.getWhoClicked().sendMessage("§cErreur: Ce chunk ne vous appartient pas.");
-					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMEN_HURT, 1.0F, 1.0F);
+					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
 					e.getWhoClicked().closeInventory();
 				}else {
 					e.getWhoClicked().sendMessage("§cErreur: Ce chunk n'appartient à personne.");
-					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMEN_HURT, 1.0F, 1.0F);
+					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
 					e.getWhoClicked().closeInventory();
 				}
 				
@@ -1120,11 +1128,11 @@ public class ClaimManager implements Listener{
 				}else if(this.isClaim(e.getWhoClicked().getLocation().getChunk())){
 					//MESSAGE & SOUND
 					e.getWhoClicked().sendMessage("§cErreur: Cette zone appartient déjà à quelqu'un.");
-					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMEN_HURT, 1.0F, 1.0F);
+					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
 				}else if(SurvivalClaim.getEconomy().getBalance(e.getWhoClicked().getName()) < SurvivalClaim.getClaimsManager().getPrices().get(0)) {
 					//MESSAGE & SOUND
 					e.getWhoClicked().sendMessage("§cErreur: Vous n'avez pas l'argent necessaire.");
-					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMEN_HURT, 1.0F, 1.0F);
+					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
 				}
 			}
 			//CLAIM 32X32
@@ -1151,11 +1159,11 @@ public class ClaimManager implements Listener{
 						this.isClaim(new ClaimChunk(e.getWhoClicked().getWorld().getName()+"/"+(e.getWhoClicked().getLocation().getChunk().getX()+1)+"/"+(e.getWhoClicked().getLocation().getChunk().getZ()-1)))){
 					//MESSAGE & SOUND
 					e.getWhoClicked().sendMessage("§cErreur: Cette zone appartient déjà à quelqu'un.");
-					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMEN_HURT, 1.0F, 1.0F);
+					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
 				}else if(SurvivalClaim.getEconomy().getBalance(e.getWhoClicked().getName())< this.getPrices().get(1)) {
 					//MESSAGE & SOUND
 					e.getWhoClicked().sendMessage("§cErreur: Vous n'avez pas l'argent necessaire.");
-					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMEN_HURT, 1.0F, 1.0F);
+					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
 				}
 			}
 			//CLAIM 48X48
@@ -1197,11 +1205,11 @@ public class ClaimManager implements Listener{
 						|| this.isClaim(new ClaimChunk(chunk.getWorld().getName()+"/"+(chunk.getX()+1 )+"/"+(chunk.getZ()-1 )))){
 					//MESSAGE & SOUND
 					e.getWhoClicked().sendMessage("§cErreur: Cette zone appartient déjà à quelqu'un.");
-					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMEN_HURT, 1.0F, 1.0F);
+					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
 				}else if(SurvivalClaim.getEconomy().getBalance(e.getWhoClicked().getName())< this.getPrices().get(2)) {
 					//MESSAGE & SOUND
 					e.getWhoClicked().sendMessage("§cErreur: Vous n'avez pas l'argent necessaire.");
-					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMEN_HURT, 1.0F, 1.0F);
+					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
 				}
 			}
 			//CLAIM 80X80
@@ -1219,11 +1227,11 @@ public class ClaimManager implements Listener{
 				}else if(this.isClaim(e.getWhoClicked().getLocation().getChunk())){
 					//MESSAGE & SOUND
 					e.getWhoClicked().sendMessage("§cErreur: Cette zone appartient déjà à quelqu'un.");
-					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMEN_HURT, 1.0F, 1.0F);
+					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
 				}else if(SurvivalClaim.getEconomy().getBalance(e.getWhoClicked().getName())< this.getPrices().get(3)) {
 					//MESSAGE & SOUND
 					e.getWhoClicked().sendMessage("§cErreur: Vous n'avez pas l'argent necessaire.");
-					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMEN_HURT, 1.0F, 1.0F);
+					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
 				}
 			}
 			e.setCancelled(true);

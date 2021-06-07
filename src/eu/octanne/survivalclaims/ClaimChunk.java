@@ -54,12 +54,12 @@ public class ClaimChunk {
 	 * CONDITIONS
 	 */
 	public boolean equals(ClaimChunk claimChunk) {
-		if(((ClaimChunk)claimChunk).getX() == this.x && ((ClaimChunk)claimChunk).getZ() == this.z && ((ClaimChunk)claimChunk).getWorld().equals(this.world)) {
+		if(claimChunk.getX() == this.x && claimChunk.getZ() == this.z && claimChunk.getWorld().equals(this.world)) {
 			return true;
 		}else return false;
 	}
 	public boolean equals(Chunk chunk) {
-		if(((Chunk)chunk).getX() == this.x && ((Chunk)chunk).getZ() == this.z && ((Chunk)chunk).getWorld().getName().equals(this.world)) {
+		if(chunk.getX() == this.x && chunk.getZ() == this.z && chunk.getWorld().getName().equals(this.world)) {
 			return true;
 		}else return false;
 	}

@@ -84,7 +84,7 @@ public class ClaimOwner {
 		}else return false;
 	}
 	public boolean equals(ClaimOwner owner) {
-		if(((ClaimOwner)owner).getOwner().equals(this.owner)) {
+		if(owner.getOwner().equals(this.owner)) {
 			return true;
 		}else return false;
 	}

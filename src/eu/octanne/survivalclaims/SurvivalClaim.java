@@ -4,7 +4,6 @@ import java.util.ArrayList;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.SkullType;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -13,8 +12,6 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 
 import net.milkbowl.vault.economy.Economy;
 
@@ -53,28 +50,45 @@ public class SurvivalClaim extends JavaPlugin{
 	/*
 	 * ITEMS CREATOR
 	 */
-	@SuppressWarnings("deprecation")
-	static public ItemStack createItemStack(String DisplayName, Material id, int QteItem, ArrayList<String> Lore, int data, boolean Glowing){
-				
-		ItemStack item = new ItemStack(id, QteItem, (short) 0, (byte) data);
+	// CREATE ITEM WITH DATA
+	static public ItemStack createItemStack(String DisplayName, Material id, int QteItem, ArrayList<String> Lore,
+			boolean Glowing, boolean unbreakable) {
+
+		ItemStack item = new ItemStack(id, QteItem);
 		ItemMeta itemmeta = item.getItemMeta();
-		itemmeta.setLore(Lore);
 		itemmeta.setDisplayName(DisplayName);
+		itemmeta.setLore(Lore);
 		itemmeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
 		itemmeta.addItemFlags(ItemFlag.HIDE_DESTROYS);
 		itemmeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
 		itemmeta.addItemFlags(ItemFlag.HIDE_PLACED_ON);
 		itemmeta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS);
 		itemmeta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
-		if(Glowing){
+		if (Glowing) {
 			itemmeta.addEnchant(Enchantment.ARROW_FIRE, 10, true);
 		}
+		itemmeta.setUnbreakable(unbreakable);
 		item.setItemMeta(itemmeta);
 		return item;
-	}		
-	static public ItemStack createSkull(String DisplayName, ArrayList<String> Lore, SkullType Type, String Owner, boolean Glowing){
-		
-		ItemStack item = new ItemStack(Material.SKULL_ITEM, 1, (short) Type.ordinal());
+	}
+
+	static public ItemStack createItemStack(String DisplayName, Material id, int QteItem, ArrayList<String> Lore,
+			ItemMeta meta, boolean unbreakable) {
+
+		ItemStack item = new ItemStack(id, QteItem);
+		ItemMeta itemmeta = meta;
+		itemmeta.setDisplayName(DisplayName);
+		itemmeta.setLore(Lore);
+		itemmeta.setUnbreakable(unbreakable);
+		item.setItemMeta(itemmeta);
+		return item;
+	}
+	
+	@SuppressWarnings("deprecation")
+	static public ItemStack createItemSkull(String DisplayName, ArrayList<String> Lore, String Owner,
+			boolean Glowing) {
+
+		ItemStack item = new ItemStack(Material.PLAYER_HEAD, 1);
 		SkullMeta itemmeta = (SkullMeta) item.getItemMeta();
 		itemmeta.setLore(Lore);
 		itemmeta.setDisplayName(DisplayName);
@@ -84,13 +98,13 @@ public class SurvivalClaim extends JavaPlugin{
 		itemmeta.addItemFlags(ItemFlag.HIDE_PLACED_ON);
 		itemmeta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS);
 		itemmeta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
-		itemmeta.setOwner(Owner);
-		if(Glowing){
+		itemmeta.setOwningPlayer(Bukkit.getOfflinePlayer(Owner));
+		if (Glowing) {
 			itemmeta.addEnchant(Enchantment.DURABILITY, 10, true);
 		}
 		item.setItemMeta(itemmeta);
 		return item;
-	}	
+	}
 	
 	/*
 	 * GETTERS
@@ -101,15 +115,5 @@ public class SurvivalClaim extends JavaPlugin{
 	}
 	static public Economy getEconomy() {
 		return economy;
-	}
-	static public WorldGuardPlugin getWorldGuard() {
-	    Plugin plugin = Bukkit.getServer().getPluginManager().getPlugin("WorldGuard");
-	 
-	    // WorldGuard may not be loaded
-	    if (plugin == null || !(plugin instanceof WorldGuardPlugin)) {
-	        return null; // Maybe you want throw an exception instead
-	    }
-	 
-	    return (WorldGuardPlugin) plugin;
 	}
 }
