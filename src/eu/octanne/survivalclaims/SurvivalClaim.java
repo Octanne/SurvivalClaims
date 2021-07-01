@@ -1,6 +1,7 @@
 package eu.octanne.survivalclaims;
 
 import java.util.ArrayList;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -84,8 +85,7 @@ public class SurvivalClaim extends JavaPlugin{
 		return item;
 	}
 	
-	@SuppressWarnings("deprecation")
-	static public ItemStack createItemSkull(String DisplayName, ArrayList<String> Lore, String Owner,
+	static public ItemStack createItemSkull(String DisplayName, ArrayList<String> Lore, UUID Owner,
 			boolean Glowing) {
 
 		ItemStack item = new ItemStack(Material.PLAYER_HEAD, 1);

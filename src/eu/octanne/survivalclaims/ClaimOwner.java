@@ -3,29 +3,30 @@ package eu.octanne.survivalclaims;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.UUID;
 
 import org.bukkit.Chunk;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 public class ClaimOwner {
 	
-	protected ArrayList<String> friends;
+	protected ArrayList<UUID> friends;
 	protected ArrayList<ClaimChunk> claim;
-	protected String owner;
+	protected UUID owner;
 	protected OwnerType type;
 	
-	public ClaimOwner(String ownerName, OwnerType type){
-		owner = ownerName;
+	public ClaimOwner(UUID ownerId, OwnerType type){
+		owner = ownerId;
 		this.type = type;
 		this.claim = new ArrayList<ClaimChunk>();
-		this.friends = new ArrayList<String>();
+		this.friends = new ArrayList<UUID>();
  	}
 	
-	private ClaimOwner(String ownerName, OwnerType type, ArrayList<ClaimChunk> claim, ArrayList<String> friends) {
-		owner = ownerName;
+	private ClaimOwner(UUID ownerId, OwnerType type, ArrayList<ClaimChunk> claim, ArrayList<UUID> friends) {
+		owner = ownerId;
 		this.type = type;
 		this.claim = claim;
-		if(friends == null) {friends = new ArrayList<String>();} 
+		if(friends == null) {friends = new ArrayList<UUID>();} 
 		this.friends = friends;
 	}
 	
@@ -54,15 +55,15 @@ public class ClaimOwner {
 	/*
 	 * FRIENDS GESTION
 	 */
-	public boolean addFriend(String playerName) {
-		if(!friends.contains(playerName)) {
-			friends.add(playerName);
+	public boolean addFriend(UUID playerId) {
+		if(!friends.contains(playerId)) {
+			friends.add(playerId);
 			return true;
 		}else return false;
 	}
-	public boolean removeFriend(String playerName) {
-		if(friends.contains(playerName)) {
-			friends.remove(playerName);
+	public boolean removeFriend(UUID playerId) {
+		if(friends.contains(playerId)) {
+			friends.remove(playerId);
 			return true;
 		}else return false;
 	}
@@ -70,10 +71,10 @@ public class ClaimOwner {
 	/*
 	 * GETTERS
 	 */
-	public String getOwner() {return owner;}
+	public UUID getOwner() {return owner;}
 	public OwnerType getType() {return type;}
 	public ArrayList<ClaimChunk> getClaims() {return claim;}
-	public ArrayList<String> getFriends(){return friends;}
+	public ArrayList<UUID> getFriends(){return friends;}
 	
 	/*
 	 * CONDITIONS
@@ -96,8 +97,8 @@ public class ClaimOwner {
 		}
 		return false;
 	}
-	public boolean isFriend(String playerName) {
-		if(friends.contains(playerName)) {
+	public boolean isFriend(UUID playerId) {
+		if(friends.contains(playerId)) {
 			return true;
 		}else return false;
 	}
@@ -106,10 +107,10 @@ public class ClaimOwner {
 	 * GET A ClaimOwner
 	 */
 	@SuppressWarnings("unchecked")
-	static ClaimOwner get(String ownerName) {
+	static ClaimOwner get(UUID ownerId) {
 		ArrayList<ClaimChunk> claims = new ArrayList<ClaimChunk>();
 		OwnerType type;
-		File file = new File(SurvivalClaim.pathFolder+"/data/"+ownerName);
+		File file = new File(SurvivalClaim.pathFolder+"/data/"+ownerId);
 		
 		if(file.exists()) {
 			YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
@@ -118,7 +119,7 @@ public class ClaimOwner {
 			if(config.getString("type").equalsIgnoreCase("player")) {
 				type = OwnerType.PLAYER;
 			} else type = OwnerType.REGION;
-			return new ClaimOwner(ownerName, type, claims, (ArrayList<String>) config.get("Friends"));
+			return new ClaimOwner(ownerId, type, claims, (ArrayList<UUID>) config.get("Friends"));
 		}else return null;
 	}
 	/*

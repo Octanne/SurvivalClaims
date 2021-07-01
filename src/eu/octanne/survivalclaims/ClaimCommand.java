@@ -3,6 +3,7 @@ package eu.octanne.survivalclaims;
 import java.io.File;
 import java.util.ArrayList;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -20,39 +21,46 @@ public class ClaimCommand implements CommandExecutor{
 	@Override
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 		if(sender instanceof Player && ((ArrayList<String>)config.get("worlds")).contains(((Player) sender).getWorld().getName())) {
+			Player player = (Player) sender;
 			if(args.length > 0) {
 				if(args[0].equalsIgnoreCase("addfriend")) {
 					if(args.length >= 2) {
-						if(!SurvivalClaim.getClaimsManager().getClaimOwner(sender.getName()).getFriends().contains(args[1]) && !args[1].equals(sender.getName())) {
-							SurvivalClaim.getClaimsManager().getClaimOwner(sender.getName()).addFriend(args[1]);
-							sender.sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+args[1].toString()+ChatColor.GREEN+" viens d'être ajouté votre liste d'ami.");
-						}else if(SurvivalClaim.getClaimsManager().getClaimOwner(sender.getName()).getFriends().contains(args[1])){
-							sender.sendMessage(ChatColor.RED+"Erreur: "+ChatColor.BLUE+args[1].toString()+ChatColor.RED+" est déjà dans votre liste d'ami.");
+						Player friend = Bukkit.getPlayerExact(args[1]);
+						if(friend == null) {
+							player.sendMessage(ChatColor.RED+"Erreur: Ce joueur n'existe pas ou il n'est pas connecté.");
+						}else if(!SurvivalClaim.getClaimsManager().getClaimOwner(player.getUniqueId()).getFriends().contains(friend.getUniqueId()) && !args[1].equals(player.getName())) {
+							SurvivalClaim.getClaimsManager().getClaimOwner(player.getUniqueId()).addFriend(friend.getUniqueId());
+							player.sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+args[1].toString()+ChatColor.GREEN+" viens d'être ajouté votre liste d'ami.");
+						}else if(SurvivalClaim.getClaimsManager().getClaimOwner(player.getUniqueId()).getFriends().contains(friend.getUniqueId())){
+							player.sendMessage(ChatColor.RED+"Erreur: "+ChatColor.BLUE+args[1].toString()+ChatColor.RED+" est déjà dans votre liste d'ami.");
 						}else {
-							sender.sendMessage(ChatColor.RED+"Erreur: Vous ne pouvez pas vous ajouter dans votre liste d'ami.");
+							player.sendMessage(ChatColor.RED+"Erreur: Vous ne pouvez pas vous ajouter dans votre liste d'ami.");
 						}
 					}else {
-						sender.sendMessage(ChatColor.RED+"Usage: /claim addfriend <joueur> - ajouter un(e) ami(e)");
+						player.sendMessage(ChatColor.RED+"Usage: /claim addfriend <joueur> - ajouter un(e) ami(e)");
 					}
 				}
 				else if(args[0].equalsIgnoreCase("removefriend")) {
 					if(args.length >= 2) {
-						if(SurvivalClaim.getClaimsManager().getClaimOwner(sender.getName()).getFriends().contains(args[1])) {
-							SurvivalClaim.getClaimsManager().getClaimOwner(sender.getName()).removeFriend(args[1]);
-							sender.sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+args[1].toString()+ChatColor.GREEN+" viens d'être supprimé de votre liste d'ami.");
+						Player friend = Bukkit.getPlayerExact(args[1]);
+						if(friend == null) {
+							player.sendMessage(ChatColor.RED+"Erreur: Ce joueur n'existe pas ou il n'est pas connecté.");
+						}else if(SurvivalClaim.getClaimsManager().getClaimOwner(player.getUniqueId()).getFriends().contains(friend.getUniqueId())) {
+							SurvivalClaim.getClaimsManager().getClaimOwner(player.getUniqueId()).removeFriend(friend.getUniqueId());
+							player.sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+args[1].toString()+ChatColor.GREEN+" viens d'être supprimé de votre liste d'ami.");
 						}else {
-							sender.sendMessage(ChatColor.RED+"Erreur: "+ChatColor.BLUE+args[1].toString()+ChatColor.RED+" n'est pas dans votre liste d'ami.");
+							player.sendMessage(ChatColor.RED+"Erreur: "+ChatColor.BLUE+args[1].toString()+ChatColor.RED+" n'est pas dans votre liste d'ami.");
 						}
 					}else {
-						sender.sendMessage(ChatColor.RED+"Usage: /claim removefriend <joueur> - Supprimer un(e) ami(e)");
+						player.sendMessage(ChatColor.RED+"Usage: /claim removefriend <joueur> - Supprimer un(e) ami(e)");
 					}
 				}else if(args[0].equalsIgnoreCase("map")) {
-					sender.sendMessage(SurvivalClaim.getClaimsManager().getMap((Player) sender));
+					player.sendMessage(SurvivalClaim.getClaimsManager().getMap((Player) player));
 				}else {
-					SurvivalClaim.getClaimsManager().openMenu((Player) sender);
+					SurvivalClaim.getClaimsManager().openMenu((Player) player);
 				}
 			}else {
-				SurvivalClaim.getClaimsManager().openMenu((Player) sender);
+				SurvivalClaim.getClaimsManager().openMenu((Player) player);
 			}
 			return true;
 		}else {

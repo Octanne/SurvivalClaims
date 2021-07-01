@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -47,7 +48,7 @@ public class ClaimManager implements Listener{
 	private BossBar barFlyEnable = Bukkit.createBossBar("§aActivation du Fly...", BarColor.GREEN, BarStyle.SOLID);
 	private BossBar barFlyDisable = Bukkit.createBossBar("§cDésactivation du Fly...", BarColor.RED, BarStyle.SOLID);
 	
-	private ArrayList<String> playerMap = new ArrayList<String>();
+	private ArrayList<UUID> playerMap = new ArrayList<UUID>();
 	private ArrayList<Integer> amountPriceClaims;
 	private int cooldownSave = 1799;
 	
@@ -81,8 +82,8 @@ public class ClaimManager implements Listener{
 
 			@Override
 			public void run() {
-				for(String playerName: playerMap) {
-					Bukkit.getPlayer(playerName).sendMessage(getMap(Bukkit.getPlayer(playerName)));
+				for(UUID playerId: playerMap) {
+					Bukkit.getPlayer(playerId).sendMessage(getMap(Bukkit.getPlayer(playerId)));
 				}
 			}
 			
@@ -110,7 +111,7 @@ public class ClaimManager implements Listener{
 	 * MAP SYSTEM
 	 */
 	public String getStatutMap(Player p) {
-		if(playerMap.contains(p.getName())) {
+		if(playerMap.contains(p.getUniqueId())) {
 			return "§aActivé";
 		}else return "§cDésactivé";
 	}
@@ -139,7 +140,7 @@ public class ClaimManager implements Listener{
 				if(this.isClaim(claim.getChunk())) {
 					if(new ClaimChunk(p.getLocation().getChunk()).equals(claim)) {
 						map[lign] = map[lign]+"§9O§r";
-					}else if(this.getClaimOwner(claim.getChunk()).getOwner().equals(p.getName())){
+					}else if(this.getClaimOwner(claim.getChunk()).getOwner().equals(p.getUniqueId())){
 						map[lign] = map[lign]+"§aX§r";
 					}else {
 						map[lign] = map[lign]+"§cX§r";
@@ -176,13 +177,13 @@ public class ClaimManager implements Listener{
 		return map;
 	}
 	public void closeMap(Player player) {
-		if(playerMap.contains(player.getName())) {
-			playerMap.remove(player.getName());
+		if(playerMap.contains(player.getUniqueId())) {
+			playerMap.remove(player.getUniqueId());
 		}
 	}
 	public void openMap(Player player) {
-		if(!playerMap.contains(player.getName())) {
-			playerMap.add(player.getName());
+		if(!playerMap.contains(player.getUniqueId())) {
+			playerMap.add(player.getUniqueId());
 		}
 	}
 	
@@ -193,21 +194,21 @@ public class ClaimManager implements Listener{
 		for(ClaimOwner cp : ownerClaim) {
 			if(cp.hasClaim(p.getLocation().getChunk())) return false;
 		}
-		getClaimOwner(p.getName()).addClaim(p.getLocation().getChunk());
+		getClaimOwner(p.getUniqueId()).addClaim(p.getLocation().getChunk());
 		return true;
 	}
 	public boolean claim(Player p, Chunk chunk) {
 		for(ClaimOwner cp : ownerClaim) {
 			if(cp.hasClaim(chunk)) return false;
 		}
-		getClaimOwner(p.getName()).addClaim(chunk);
+		getClaimOwner(p.getUniqueId()).addClaim(chunk);
 		return true;
 	}
 	public boolean claim(Player p, ClaimChunk chunk) {
 		for(ClaimOwner cp : ownerClaim) {
 			if(cp.hasClaim(chunk.getChunk())) return false;
 		}
-		getClaimOwner(p.getName()).addClaim(chunk.getChunk());
+		getClaimOwner(p.getUniqueId()).addClaim(chunk.getChunk());
 		return true;
 	}
 	public boolean unclaim(Player p) {
@@ -239,26 +240,30 @@ public class ClaimManager implements Listener{
 		new AnvilGUI.Builder().onClose(player -> {
 			player.sendMessage(ChatColor.RED+"Erreur: La saisie est annulée.");
 		}).onComplete((player, text) -> {
-			if(Bukkit.getPlayerExact(text) != null && !getClaimOwner(player.getLocation().getChunk()).getOwner().equals(text) && 
-					(getClaimOwner(p.getLocation().getChunk()).getOwner().equals(player.getName()) || player.hasPermission("instantclaims.giveclaim.bypass"))) {
-				giveClaim(p, Bukkit.getPlayerExact(text));
-				player.sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+text+ChatColor.GREEN+" viens d'être assigner comme propriétaire.");
-				Bukkit.getPlayerExact(text).sendMessage(ChatColor.BLUE+player.getName()+" §aviens de vous donner l'une de ses propriétés.");
+			Player player2 = Bukkit.getPlayerExact(text);
+			if(player2 == null) {
+				player.sendMessage(ChatColor.RED+"Erreur: Ce joueur n'existe pas ou il n'est pas connecté.");
 				return AnvilGUI.Response.close();
-			}else if(Bukkit.getPlayerExact(text) != null && getClaimOwner(p.getLocation().getChunk()).getOwner().equals(player.getName())){
+			}else if(!getClaimOwner(player.getLocation().getChunk()).getOwner().equals(player2.getUniqueId()) && 
+					(getClaimOwner(p.getLocation().getChunk()).getOwner().equals(player.getUniqueId()) || player.hasPermission("instantclaims.giveclaim.bypass"))) {
+				giveClaim(p, player2);
+				player.sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+text+ChatColor.GREEN+" viens d'être assigner comme propriétaire.");
+				player2.sendMessage(ChatColor.BLUE+player.getName()+" §aviens de vous donner l'une de ses propriétés.");
+				return AnvilGUI.Response.close();
+			}else if(getClaimOwner(p.getLocation().getChunk()).getOwner().equals(player.getUniqueId())){
 				player.sendMessage(ChatColor.RED+"Erreur: Vous ne pouvez pas remplacer le propriétaire par lui même.");
 				return AnvilGUI.Response.close();
-			}else if(!getClaimOwner(player.getLocation().getChunk()).getOwner().equals(player.getName())){
+			}else if(!getClaimOwner(player.getLocation().getChunk()).getOwner().equals(player.getUniqueId())){
 				player.sendMessage(ChatColor.RED+"Erreur: Vous n'avez pas les droits sur ce claim.");
 				return AnvilGUI.Response.close();
-			}else if(getClaimOwner(text) != null && getClaimOwner(text).getType().equals(OwnerType.REGION) && 
+			}else if(getClaimOwner(player2.getUniqueId()) != null && getClaimOwner(player2.getUniqueId()).getType().equals(OwnerType.REGION) && 
 					(p.hasPermission("instantclaims.giveclaim.bypass"))){
 				player.sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+text+ChatColor.GREEN+" viens d'être assigner comme propriétaire.");
 				unclaim(p);
 				for(ClaimOwner cp : ownerClaim) {
 					if(cp.hasClaim(p.getLocation().getChunk())) return AnvilGUI.Response.close();
 				}
-				getClaimOwner(text).addClaim(p.getLocation().getChunk());
+				getClaimOwner(player2.getUniqueId()).addClaim(p.getLocation().getChunk());
 				return AnvilGUI.Response.close();
 			}else {
 				player.sendMessage(ChatColor.RED+"Erreur: Le joueur saisis n'est pas correcte.");
@@ -276,18 +281,18 @@ public class ClaimManager implements Listener{
 			//IS HE ALREADY LOAD ?
 			if(!ownerClaim.isEmpty()) {
 				for(ClaimOwner claimO : ownerClaim) {
-					if(claimO.isPlayer() && claimO.getOwner().equals(p.getName())) {
+					if(claimO.isPlayer() && claimO.getOwner().equals(p.getUniqueId())) {
 						//System.out.println(claimO.owner+" et déjà chargé");
 						return;
 					}
 				}
 			}
 			//IF HE EXIST ALREADY
-			if(ClaimOwner.get(p.getName()) != null) {
-				ownerClaim.add(ClaimOwner.get(p.getName()));
+			if(ClaimOwner.get(p.getUniqueId()) != null) {
+				ownerClaim.add(ClaimOwner.get(p.getUniqueId()));
 				//System.out.println("Chargement de "+ClaimOwner.get(e.getPlayer().getName()).owner);
 			}else {
-				ClaimOwner owner = new ClaimOwner(p.getName(), OwnerType.PLAYER);
+				ClaimOwner owner = new ClaimOwner(p.getUniqueId(), OwnerType.PLAYER);
 				ClaimOwner.save(owner);
 				ownerClaim.add(owner);
 				//System.out.println("Création de "+owner.owner);
@@ -306,7 +311,7 @@ public class ClaimManager implements Listener{
 				}
 				//LOAD THE GOOD OWNER
 				for(File file : getFileOwners()) {
-					ClaimOwner owner = ClaimOwner.get(file.getName());
+					ClaimOwner owner = ClaimOwner.get(UUID.fromString(file.getName()));
 					//IS IT THE GOOD OWNER ?
 					if(owner.hasClaim(chunk)) {
 						ownerClaim.add(owner);
@@ -357,12 +362,16 @@ public class ClaimManager implements Listener{
 		new AnvilGUI.Builder().onClose(player -> {
 			player.sendMessage(ChatColor.RED+"Erreur: La saisie est annulée.");
 		}).onComplete((player, text) -> {
-			if(!SurvivalClaim.getClaimsManager().getClaimOwner(player.getName()).getFriends().contains(text) && !text.equals(player.getName())) {
-				SurvivalClaim.getClaimsManager().getClaimOwner(player.getName()).addFriend(text);
+			Player player2 = Bukkit.getPlayerExact(text);
+			if(player2 == null) {
+				player.sendMessage(ChatColor.RED+"Erreur: Ce joueur n'existe pas ou il n'est pas connecté.");
+				return AnvilGUI.Response.close();
+			} else if(!SurvivalClaim.getClaimsManager().getClaimOwner(player.getUniqueId()).getFriends().contains(player2.getUniqueId()) && !text.equals(player.getName())) {
+				SurvivalClaim.getClaimsManager().getClaimOwner(player.getUniqueId()).addFriend(player2.getUniqueId());
 				player.sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+text+ChatColor.GREEN+" viens d'être ajouté votre liste d'ami.");
-				if(Bukkit.getPlayer(text)!= null)Bukkit.getPlayer(text).sendMessage(ChatColor.BLUE+player.getName()+" §aviens de vous ajouter en ami.");
+				player2.sendMessage(ChatColor.BLUE+player.getName()+" §aviens de vous ajouter en ami.");
 				return AnvilGUI.Response.openInventory(createFriendMenu(p));
-			}else if(SurvivalClaim.getClaimsManager().getClaimOwner(player.getName()).getFriends().contains(text)){
+			}else if(SurvivalClaim.getClaimsManager().getClaimOwner(player.getUniqueId()).getFriends().contains(player2.getUniqueId())){
 				player.sendMessage(ChatColor.RED+"Erreur: "+ChatColor.BLUE+text+ChatColor.RED+" est déjà dans votre liste d'ami.");
 				return AnvilGUI.Response.openInventory(createFriendMenu(p));
 			}else {
@@ -378,21 +387,21 @@ public class ClaimManager implements Listener{
 
 		int pageT = 0;
 		int nbrO = 0;
-		for(int nbr = 1; nbrO <= getClaimOwner(p.getName()).getFriends().size(); nbr++) {
+		for(int nbr = 1; nbrO <= getClaimOwner(p.getUniqueId()).getFriends().size(); nbr++) {
 			nbrO = 18*nbr;
 		}
 		pageT = nbrO/18;
 
 		//SET OFFER
-		if(getClaimOwner(p.getName()).getFriends().size() != 0) {	
+		if(getClaimOwner(p.getUniqueId()).getFriends().size() != 0) {	
 			int numOffer = 18*page-18;
 			int numSlot = 0;
 			ArrayList<String> lore = new ArrayList<String>();
 			lore.add(ChatColor.RED+"Shift-Click");
 			lore.add(ChatColor.GRAY+"Pour retirer des amis");
-			while(numOffer < getClaimOwner(p.getName()).getFriends().size()){
+			while(numOffer < getClaimOwner(p.getUniqueId()).getFriends().size()){
 				if(friends.getItem(17) == null) {
-					friends.setItem(numSlot, SurvivalClaim.createItemSkull(getClaimOwner(p.getName()).getFriends().get(numOffer), lore, getClaimOwner(p.getName()).getFriends().get(numOffer), false));
+					friends.setItem(numSlot, SurvivalClaim.createItemSkull(Bukkit.getOfflinePlayer(getClaimOwner(p.getUniqueId()).getFriends().get(numOffer)).getName(), lore, getClaimOwner(p.getUniqueId()).getFriends().get(numOffer), false));
 					numSlot++;
 					numOffer++;
 				}else {
@@ -438,21 +447,21 @@ public class ClaimManager implements Listener{
 
 		int pageT = 0;
 		int nbrO = 0;
-		for(int nbr = 1; nbrO <= getClaimOwner(p.getName()).getFriends().size(); nbr++) {
+		for(int nbr = 1; nbrO <= getClaimOwner(p.getUniqueId()).getFriends().size(); nbr++) {
 			nbrO = 18*nbr;
 		}
 		pageT = nbrO/18;
 
 		//SET OFFER
-		if(getClaimOwner(p.getName()).getFriends().size() != 0) {	
+		if(getClaimOwner(p.getUniqueId()).getFriends().size() != 0) {	
 			int numOffer = 0;
 			int numSlot = 0;
 			ArrayList<String> lore = new ArrayList<String>();
 			lore.add(ChatColor.RED+"Shift-Click");
 			lore.add(ChatColor.GRAY+"Pour retirer des amis");
-			while(numOffer < getClaimOwner(p.getName()).getFriends().size()){
+			while(numOffer < getClaimOwner(p.getUniqueId()).getFriends().size()){
 				if(friends.getItem(17) == null) {
-					friends.setItem(numSlot, SurvivalClaim.createItemSkull(getClaimOwner(p.getName()).getFriends().get(numOffer), lore, getClaimOwner(p.getName()).getFriends().get(numOffer), false));
+					friends.setItem(numSlot, SurvivalClaim.createItemSkull(Bukkit.getOfflinePlayer(getClaimOwner(p.getUniqueId()).getFriends().get(numOffer)).getName(), lore, getClaimOwner(p.getUniqueId()).getFriends().get(numOffer), false));
 					numSlot++;
 					numOffer++;
 				}else {
@@ -497,21 +506,21 @@ public class ClaimManager implements Listener{
 
 		int pageT = 0;
 		int nbrO = 0;
-		for(int nbr = 1; nbrO <= getClaimOwner(p.getName()).getFriends().size(); nbr++) {
+		for(int nbr = 1; nbrO <= getClaimOwner(p.getUniqueId()).getFriends().size(); nbr++) {
 			nbrO = 18*nbr;
 		}
 		pageT = nbrO/18;
 
 		//SET OFFER
-		if(getClaimOwner(p.getName()).getFriends().size() != 0) {	
+		if(getClaimOwner(p.getUniqueId()).getFriends().size() != 0) {	
 			int numOffer = 0;
 			int numSlot = 0;
 			ArrayList<String> lore = new ArrayList<String>();
 			lore.add(ChatColor.RED+"Shift-Click");
 			lore.add(ChatColor.GRAY+"Pour retirer des amis");
-			while(numOffer < getClaimOwner(p.getName()).getFriends().size()){
+			while(numOffer < getClaimOwner(p.getUniqueId()).getFriends().size()){
 				if(friends.getItem(17) == null) {
-					friends.setItem(numSlot, SurvivalClaim.createItemSkull(getClaimOwner(p.getName()).getFriends().get(numOffer), lore, getClaimOwner(p.getName()).getFriends().get(numOffer), false));
+					friends.setItem(numSlot, SurvivalClaim.createItemSkull(Bukkit.getOfflinePlayer(getClaimOwner(p.getUniqueId()).getFriends().get(numOffer)).getName(), lore, getClaimOwner(p.getUniqueId()).getFriends().get(numOffer), false));
 					numSlot++;
 					numOffer++;
 				}else {
@@ -554,18 +563,17 @@ public class ClaimManager implements Listener{
 	/*
 	 * MENU MAIN
 	 */
-	@SuppressWarnings("deprecation")
 	public boolean openMenu(Player player) {
 		Inventory inv = Bukkit.createInventory(null, 27, "§6Survival§cClaim");
 		
 		//HEAD
 		ArrayList<String> loreInfo = new ArrayList<String>();
 		loreInfo.add(ChatColor.RED+"Nom: "+ChatColor.BLUE+""+player.getName());
-		double money = SurvivalClaim.getEconomy().getBalance(player.getName());
+		double money = SurvivalClaim.getEconomy().getBalance(Bukkit.getOfflinePlayer(player.getUniqueId()));
 		BigDecimal bd = new BigDecimal(money).setScale(2, RoundingMode.HALF_EVEN);
 		loreInfo.add(ChatColor.RED+"Argent: "+ChatColor.BLUE+""+bd.doubleValue());
-		loreInfo.add(ChatColor.RED+"Nb Claim: "+ChatColor.BLUE+""+this.getClaimOwner(player.getName()).getClaims().size());
-		ItemStack infoHead = SurvivalClaim.createItemSkull(ChatColor.GRAY+"Informations", loreInfo, player.getName(), false);
+		loreInfo.add(ChatColor.RED+"Nb Claim: "+ChatColor.BLUE+""+this.getClaimOwner(player.getUniqueId()).getClaims().size());
+		ItemStack infoHead = SurvivalClaim.createItemSkull(ChatColor.GRAY+"Informations", loreInfo, player.getUniqueId(), false);
 		inv.setItem(0, infoHead);
 		
 		//FRIEND
@@ -664,19 +672,19 @@ public class ClaimManager implements Listener{
 					return claimO;
 				}
 			}
-			return new ClaimOwner("Zone-Libre", OwnerType.REGION);
-		}else return new ClaimOwner("Zone-Libre", OwnerType.REGION);
+			return null;
+		}else return null;
 
 	}
-	public ClaimOwner getClaimOwner(String ownerName) {
+	public ClaimOwner getClaimOwner(UUID ownerId) {
 		if(!ownerClaim.isEmpty()) {
 			for(ClaimOwner claimO : ownerClaim) {
-				if(claimO.getOwner().equals(ownerName)) {
+				if(claimO.getOwner().equals(ownerId)) {
 					return claimO;
 				}
 			}
-			return ClaimOwner.get(ownerName);
-		}else return ClaimOwner.get(ownerName);
+			return ClaimOwner.get(ownerId);
+		}else return ClaimOwner.get(ownerId);
 
 	}
 	public ArrayList<ClaimOwner> getClaimOwners(){return ownerClaim;}
@@ -687,7 +695,7 @@ public class ClaimManager implements Listener{
 	public ArrayList<ClaimOwner> getAllClaimOwners(){
 		ArrayList<ClaimOwner> claimOs = new ArrayList<ClaimOwner>();
 		for(File file : getFileOwners()) {
-			claimOs.add(ClaimOwner.get(file.getName()));
+			claimOs.add(ClaimOwner.get(UUID.fromString(file.getName())));
 		}
 		return claimOs;
 	}
@@ -710,7 +718,7 @@ public class ClaimManager implements Listener{
 		}
 		//LOAD THE GOOD OWNER
 		for(File file : getFileOwners()) {
-			ClaimOwner owner = ClaimOwner.get(file.getName());
+			ClaimOwner owner = ClaimOwner.get(UUID.fromString(file.getName()));
 			//IS IT THE GOOD OWNER ?
 			if(owner.hasClaim(e.getChunk())) {
 				ownerClaim.add(owner);
@@ -733,7 +741,7 @@ public class ClaimManager implements Listener{
 						}
 					}
 					//IS HE A PLAYER & CONNECTED ?
-					if(claimO.isPlayer() && Bukkit.getPlayerExact(claimO.getOwner()) != null) {
+					if(claimO.isPlayer() && Bukkit.getPlayer(claimO.getOwner()) != null) {
 						return;
 					}else{
 						ClaimOwner.save(claimO);
@@ -749,7 +757,7 @@ public class ClaimManager implements Listener{
 	public void onPlayerJoin(PlayerJoinEvent e) {
 		//FLY
 		if(isClaim(e.getPlayer().getLocation().getChunk())) {
-			if(this.getClaimOwner(e.getPlayer().getLocation().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getPlayer().getLocation().getChunk()).getOwner().equals(e.getPlayer().getName())) {
+			if(this.getClaimOwner(e.getPlayer().getLocation().getChunk()).isFriend(e.getPlayer().getUniqueId()) || this.getClaimOwner(e.getPlayer().getLocation().getChunk()).getOwner().equals(e.getPlayer().getUniqueId())) {
 				if(e.getPlayer().hasPermission("Survivalclaims.fly") && !e.getPlayer().getGameMode().equals(GameMode.CREATIVE) && !e.getPlayer().getGameMode().equals(GameMode.SPECTATOR)) {
 					e.getPlayer().setAllowFlight(true);
 					flyMessage("on", e.getPlayer());
@@ -759,18 +767,18 @@ public class ClaimManager implements Listener{
 		//IS HE ALREADY LOAD ?
 		if(!ownerClaim.isEmpty()) {
 			for(ClaimOwner claimO : ownerClaim) {
-				if(claimO.isPlayer() && claimO.getOwner().equals(e.getPlayer().getName())) {
+				if(claimO.isPlayer() && claimO.getOwner().equals(e.getPlayer().getUniqueId())) {
 					//System.out.println(claimO.owner+" et déjà chargé");
 					return;
 				}
 			}
 		}
 		//IF HE EXIST ALREADY
-		if(ClaimOwner.get(e.getPlayer().getName()) != null) {
-			ownerClaim.add(ClaimOwner.get(e.getPlayer().getName()));
+		if(ClaimOwner.get(e.getPlayer().getUniqueId()) != null) {
+			ownerClaim.add(ClaimOwner.get(e.getPlayer().getUniqueId()));
 			//System.out.println("Chargement de "+ClaimOwner.get(e.getPlayer().getName()).owner);
 		}else {
-			ClaimOwner owner = new ClaimOwner(e.getPlayer().getName(), OwnerType.PLAYER);
+			ClaimOwner owner = new ClaimOwner(e.getPlayer().getUniqueId(), OwnerType.PLAYER);
 			ClaimOwner.save(owner);
 			ownerClaim.add(owner);
 			//System.out.println("Création de "+owner.owner);
@@ -779,7 +787,7 @@ public class ClaimManager implements Listener{
 	@EventHandler
 	public void onPlayerQuit(PlayerQuitEvent e) {
 		//System.out.println("Player Quit");
-		if(this.playerMap.contains(e.getPlayer().getName())) {this.playerMap.remove(e.getPlayer().getName());}
+		if(this.playerMap.contains(e.getPlayer().getUniqueId())) {this.playerMap.remove(e.getPlayer().getUniqueId());}
 		if(!e.getPlayer().getGameMode().equals(GameMode.CREATIVE) && !e.getPlayer().getGameMode().equals(GameMode.SPECTATOR))e.getPlayer().setAllowFlight(false);
 		//GET GOOD OWNER
 		/*if(ownerClaim.size() > 0) {
@@ -809,11 +817,11 @@ public class ClaimManager implements Listener{
 		if(!e.getFrom().getChunk().equals(e.getTo().getChunk())) {
 			if(this.isClaim(e.getTo().getChunk())) {
 				if(this.isClaim(e.getFrom().getChunk()) &&
-					!this.getClaimOwner(e.getFrom().getChunk()).getOwner().equals("Zone-Libre") &&	
+					this.getClaimOwner(e.getFrom().getChunk()).getOwner() != null &&	
 					!this.getClaimOwner(e.getFrom().getChunk()).equals(this.getClaimOwner(e.getTo().getChunk()))) {
 					//FLY MODE
 					if(e.getPlayer().hasPermission("Survivalclaims.fly") && !e.getPlayer().getGameMode().equals(GameMode.CREATIVE) && !e.getPlayer().getGameMode().equals(GameMode.SPECTATOR)) {
-						if(this.getClaimOwner(e.getTo().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getTo().getChunk()).getOwner().equals(e.getPlayer().getName())) {
+						if(this.getClaimOwner(e.getTo().getChunk()).isFriend(e.getPlayer().getUniqueId()) || this.getClaimOwner(e.getTo().getChunk()).getOwner().equals(e.getPlayer().getUniqueId())) {
 							e.getPlayer().setAllowFlight(true);
 							flyMessage("on", e.getPlayer());
 						}else if(!e.getPlayer().hasPermission("essentials.fly") && e.getPlayer().getAllowFlight()){
@@ -822,17 +830,14 @@ public class ClaimManager implements Listener{
 						}
 					}
 					//SEND IN ACTIONBAR
-					if(this.getClaimOwner(e.getTo().getChunk()).getOwner().equals("_Obe")) {
-						e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.GRAY+"Propriété de "+ChatColor.RED+"Yazhmog"));
-					}else {
-						e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.GRAY+"Propriété de "+ChatColor.RED+""+this.getClaimOwner(e.getTo().getChunk()).getOwner()));
-					}
+					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.GRAY+"Propriété de "+ChatColor.RED+""+Bukkit.getOfflinePlayer(this.getClaimOwner(e.getTo().getChunk()).getOwner()).getName()));
+					
 					return;
 				}
 				if(!this.isClaim(e.getFrom().getChunk())) {
 					//FLY MODE
 					if(e.getPlayer().hasPermission("Survivalclaims.fly") && !e.getPlayer().getGameMode().equals(GameMode.CREATIVE) && !e.getPlayer().getGameMode().equals(GameMode.SPECTATOR)) {
-						if(this.getClaimOwner(e.getTo().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getTo().getChunk()).getOwner().equals(e.getPlayer().getName())) {
+						if(this.getClaimOwner(e.getTo().getChunk()).isFriend(e.getPlayer().getUniqueId()) || this.getClaimOwner(e.getTo().getChunk()).getOwner().equals(e.getPlayer().getUniqueId())) {
 							e.getPlayer().setAllowFlight(true);
 							flyMessage("on", e.getPlayer());
 						}else if(!e.getPlayer().hasPermission("essentials.fly") && e.getPlayer().getAllowFlight()){
@@ -840,19 +845,14 @@ public class ClaimManager implements Listener{
 							flyMessage("off", e.getPlayer());
 						}
 					}
-					//SEND IN ACTIONBAR
-					if(this.getClaimOwner(e.getTo().getChunk()).getOwner().equals("_Obe")) {
-						e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.GRAY+"Propriété de "+ChatColor.RED+"Yazhmog"));
-					}else {
-						e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.GRAY+"Propriété de "+ChatColor.RED+""+this.getClaimOwner(e.getTo().getChunk()).getOwner()));
-					}
+					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.GRAY+"Propriété de "+ChatColor.RED+""+Bukkit.getOfflinePlayer(this.getClaimOwner(e.getTo().getChunk()).getOwner()).getName()));
 					
 					return;
 				}
 			}else if(!this.isClaim(e.getTo().getChunk()) && this.isClaim(e.getFrom().getChunk())){
 				//FLY MODE
 				if(e.getPlayer().hasPermission("Survivalclaims.fly") && !e.getPlayer().getGameMode().equals(GameMode.CREATIVE) && !e.getPlayer().getGameMode().equals(GameMode.SPECTATOR)) {
-					if(this.getClaimOwner(e.getTo().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getTo().getChunk()).getOwner().equals(e.getPlayer().getName())) {
+					if(this.getClaimOwner(e.getTo().getChunk()).isFriend(e.getPlayer().getUniqueId()) || this.getClaimOwner(e.getTo().getChunk()).getOwner().equals(e.getPlayer().getUniqueId())) {
 						e.getPlayer().setAllowFlight(true);
 						flyMessage("on", e.getPlayer());
 					}else if(!e.getPlayer().hasPermission("essentials.fly") && e.getPlayer().getAllowFlight()){
@@ -868,16 +868,16 @@ public class ClaimManager implements Listener{
 	@EventHandler
 	public void onPlaceBlock(BlockPlaceEvent e) {
 		if(this.isClaim(e.getBlock().getChunk())) {
-			if(!(this.getClaimOwner(e.getBlock().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getBlock().getChunk()).getOwner().equals(e.getPlayer().getName()) 
+			if(!(this.getClaimOwner(e.getBlock().getChunk()).isFriend(e.getPlayer().getUniqueId()) || this.getClaimOwner(e.getBlock().getChunk()).getOwner().equals(e.getPlayer().getUniqueId()) 
 					|| (e.canBuild() 
 							&& this.getClaimOwner(e.getBlock().getChunk()).getType().equals(OwnerType.REGION)))) {
 				if(!e.getPlayer().hasPermission("instantclaims.claims.bypass")) {
 					//MESSAGE
-					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED+"§c⚠ Vous n'êtes pas autorisé ⚠ (Zone protégé par "+this.getClaimOwner(e.getBlock().getChunk()).getOwner()+")"));
+					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED+"§c⚠ Vous n'êtes pas autorisé ⚠ (Zone protégé par "+Bukkit.getOfflinePlayer(getClaimOwner(e.getBlock().getChunk()).getOwner()).getName()+")"));
 					e.setCancelled(true);
 				}else if(this.getClaimOwner(e.getBlock().getChunk()).getType().equals(OwnerType.PLAYER)){
 					//MESSAGE
-					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText("§c⚠ Vous êtes entrain de Bypass ⚠ (Zone protégé par "+this.getClaimOwner(e.getBlock().getChunk()).getOwner()+")"));
+					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText("§c⚠ Vous êtes entrain de Bypass ⚠ (Zone protégé par "+Bukkit.getOfflinePlayer(getClaimOwner(e.getBlock().getChunk()).getOwner()).getName()+")"));
 				}
 			}
 		}
@@ -885,16 +885,16 @@ public class ClaimManager implements Listener{
 	@EventHandler
 	public void onBreakBlock(BlockBreakEvent e) {
 		if(this.isClaim(e.getBlock().getChunk())) {
-			if(!(this.getClaimOwner(e.getBlock().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getBlock().getChunk()).getOwner().equals(e.getPlayer().getName()) 
+			if(!(this.getClaimOwner(e.getBlock().getChunk()).isFriend(e.getPlayer().getUniqueId()) || this.getClaimOwner(e.getBlock().getChunk()).getOwner().equals(e.getPlayer().getUniqueId()) 
 					|| (!e.isCancelled() 
 							&& this.getClaimOwner(e.getBlock().getChunk()).getType().equals(OwnerType.REGION)))) {
 				if(!e.getPlayer().hasPermission("instantclaims.claims.bypass")) {
 					//MESSAGE
-					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED+"§c⚠ Vous n'êtes pas autorisé ⚠ (Zone protégé par "+this.getClaimOwner(e.getBlock().getChunk()).getOwner()+")"));
+					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED+"§c⚠ Vous n'êtes pas autorisé ⚠ (Zone protégé par "+Bukkit.getOfflinePlayer(getClaimOwner(e.getBlock().getChunk()).getOwner()).getName()+")"));
 					e.setCancelled(true);
 				}else if(this.getClaimOwner(e.getBlock().getChunk()).getType().equals(OwnerType.PLAYER)){
 					//MESSAGE
-					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText("§c⚠ Vous êtes entrain de Bypass ⚠ (Zone protégé par "+this.getClaimOwner(e.getBlock().getChunk()).getOwner()+")"));
+					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText("§c⚠ Vous êtes entrain de Bypass ⚠ (Zone protégé par "+Bukkit.getOfflinePlayer(getClaimOwner(e.getBlock().getChunk()).getOwner()).getName()+")"));
 				}
 			}
 		}
@@ -905,19 +905,15 @@ public class ClaimManager implements Listener{
 				e.getRightClicked().getType().equals(EntityType.ENDER_CRYSTAL) || e.getRightClicked().getType().equals(EntityType.ARMOR_STAND) || e.getRightClicked().getType().equals(EntityType.HORSE) ||
 				e.getRightClicked().getType().equals(EntityType.PAINTING)) 
 				|| (!e.isCancelled() && this.getClaimOwner(e.getRightClicked().getLocation().getChunk()).getType().equals(OwnerType.REGION))) {
-			if(!(this.getClaimOwner(e.getRightClicked().getLocation().getChunk()).isFriend(e.getPlayer().getName()) || 
-					this.getClaimOwner(e.getRightClicked().getLocation().getChunk()).getOwner().equals(e.getPlayer().getName()))) {
+			if(!(this.getClaimOwner(e.getRightClicked().getLocation().getChunk()).isFriend(e.getPlayer().getUniqueId()) || 
+					this.getClaimOwner(e.getRightClicked().getLocation().getChunk()).getOwner().equals(e.getPlayer().getUniqueId()))) {
 				if(!e.getPlayer().hasPermission("instantclaims.claims.bypass")) {
 					//MESSAGE
-					if(this.getClaimOwner(e.getRightClicked().getLocation().getChunk()).getOwner().equals("_Obe")) {
-						e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED+"§c⚠ Vous n'êtes pas autorisé ⚠ (Zone protégé par Yazhmog)"));
-					}else {
-						e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED+"§c⚠ Vous n'êtes pas autorisé ⚠ (Zone protégé par "+this.getClaimOwner(e.getRightClicked().getLocation().getChunk()).getOwner()+")"));
-					}
+					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED+"§c⚠ Vous n'êtes pas autorisé ⚠ (Zone protégé par "+Bukkit.getOfflinePlayer(getClaimOwner(e.getRightClicked().getLocation().getChunk()).getOwner()).getName()+")"));
 					e.setCancelled(true);
 				}else if(this.getClaimOwner(e.getRightClicked().getLocation().getChunk()).getType().equals(OwnerType.PLAYER)){
 					//MESSAGE
-					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText("§c⚠ Vous êtes entrain de Bypass ⚠ (Zone protégé par "+this.getClaimOwner(e.getRightClicked().getLocation().getChunk()).getOwner()+")"));
+					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText("§c⚠ Vous êtes entrain de Bypass ⚠ (Zone protégé par "+Bukkit.getOfflinePlayer(getClaimOwner(e.getRightClicked().getLocation().getChunk()).getOwner()).getName()+")"));
 				}
 			}
 		}
@@ -926,15 +922,11 @@ public class ClaimManager implements Listener{
 	@EventHandler
 	public void onInteractBlock(PlayerInteractEvent e) {
 		if(e.getClickedBlock() != null && this.isClaim(e.getClickedBlock().getChunk()) && !(e.getClickedBlock().getType().equals(Material.CRAFTING_TABLE) || e.getClickedBlock().getType().equals(Material.ENDER_CHEST))) {
-			if(!(this.getClaimOwner(e.getClickedBlock().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getClickedBlock().getChunk()).getOwner().equals(e.getPlayer().getName())
+			if(!(this.getClaimOwner(e.getClickedBlock().getChunk()).isFriend(e.getPlayer().getUniqueId()) || this.getClaimOwner(e.getClickedBlock().getChunk()).getOwner().equals(e.getPlayer().getUniqueId())
 					|| (!e.isCancelled() && this.getClaimOwner(e.getClickedBlock().getChunk()).getType().equals(OwnerType.REGION)))) {
 				if(!e.getPlayer().hasPermission("instantclaims.claims.bypass") && this.getClaimOwner(e.getClickedBlock().getChunk()).getType().equals(OwnerType.PLAYER)) {
 					//MESSAGE
-					if(this.getClaimOwner(e.getClickedBlock().getLocation().getChunk()).getOwner().equals("_Obe")) {
-						e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED+"§c⚠ Vous n'êtes pas autorisé ⚠ (Zone protégé par Yazhmog)"));
-					}else {
-						e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED+"§c⚠ Vous n'êtes pas autorisé ⚠ (Zone protégé par "+this.getClaimOwner(e.getClickedBlock().getLocation().getChunk()).getOwner()+")"));
-					}
+					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED+"§c⚠ Vous n'êtes pas autorisé ⚠ (Zone protégé par "+Bukkit.getOfflinePlayer(this.getClaimOwner(e.getClickedBlock().getLocation().getChunk()).getOwner()).getName()+")"));
 					e.setCancelled(true);
 				}else {
 					return;
@@ -947,11 +939,11 @@ public class ClaimManager implements Listener{
 		if(!e.getFrom().getChunk().equals(e.getTo().getChunk())) {
 			if(this.isClaim(e.getTo().getChunk())) {
 				if(this.isClaim(e.getFrom().getChunk()) &&
-					!this.getClaimOwner(e.getFrom().getChunk()).getOwner().equals("Zone-Libre") &&	
+					this.getClaimOwner(e.getFrom().getChunk()).getOwner() != null &&	
 					!this.getClaimOwner(e.getFrom().getChunk()).equals(this.getClaimOwner(e.getTo().getChunk()))) {
 					//FLY MODE
 					if(e.getPlayer().hasPermission("Survivalclaims.fly") && !e.getPlayer().getGameMode().equals(GameMode.CREATIVE) && !e.getPlayer().getGameMode().equals(GameMode.SPECTATOR)) {
-						if(this.getClaimOwner(e.getTo().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getTo().getChunk()).getOwner().equals(e.getPlayer().getName())) {
+						if(this.getClaimOwner(e.getTo().getChunk()).isFriend(e.getPlayer().getUniqueId()) || this.getClaimOwner(e.getTo().getChunk()).getOwner().equals(e.getPlayer().getUniqueId())) {
 							e.getPlayer().setAllowFlight(true);
 							flyMessage("on", e.getPlayer());
 						}else if(!e.getPlayer().hasPermission("essentials.fly") && e.getPlayer().getAllowFlight()){
@@ -960,17 +952,13 @@ public class ClaimManager implements Listener{
 						}
 					}
 					//SEND IN ACTIONBAR
-					if(this.getClaimOwner(e.getTo().getChunk()).getOwner().equals("_Obe")) {
-						e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.GRAY+"Propriété de "+ChatColor.RED+"Yazhmog"));
-					}else {
-						e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.GRAY+"Propriété de "+ChatColor.RED+""+this.getClaimOwner(e.getTo().getChunk()).getOwner()));
-					}
+					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.GRAY+"Propriété de "+ChatColor.RED+""+Bukkit.getOfflinePlayer(this.getClaimOwner(e.getTo().getChunk()).getOwner()).getName()));
 					return;
 				}
 				if(!this.isClaim(e.getFrom().getChunk())) {
 					//FLY MODE
 					if(e.getPlayer().hasPermission("Survivalclaims.fly") && !e.getPlayer().getGameMode().equals(GameMode.CREATIVE) && !e.getPlayer().getGameMode().equals(GameMode.SPECTATOR)) {
-						if(this.getClaimOwner(e.getTo().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getTo().getChunk()).getOwner().equals(e.getPlayer().getName())) {
+						if(this.getClaimOwner(e.getTo().getChunk()).isFriend(e.getPlayer().getUniqueId()) || this.getClaimOwner(e.getTo().getChunk()).getOwner().equals(e.getPlayer().getUniqueId())) {
 							e.getPlayer().setAllowFlight(true);
 							flyMessage("on", e.getPlayer());
 						}else if(!e.getPlayer().hasPermission("essentials.fly") && e.getPlayer().getAllowFlight()){
@@ -979,17 +967,13 @@ public class ClaimManager implements Listener{
 						}
 					}
 					//SEND IN ACTIONBAR
-					if(this.getClaimOwner(e.getTo().getChunk()).getOwner().equals("_Obe")) {
-						e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.GRAY+"Propriété de "+ChatColor.RED+"Yazhmog"));
-					}else {
-						e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.GRAY+"Propriété de "+ChatColor.RED+""+this.getClaimOwner(e.getTo().getChunk()).getOwner()));
-					}
+					e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.GRAY+"Propriété de "+ChatColor.RED+""+Bukkit.getOfflinePlayer(this.getClaimOwner(e.getTo().getChunk()).getOwner()).getName()));
 					return;
 				}
 			}else if(!this.isClaim(e.getTo().getChunk()) && this.isClaim(e.getFrom().getChunk())){
 				//FLY MODE
 				if(e.getPlayer().hasPermission("Survivalclaims.fly") && !e.getPlayer().getGameMode().equals(GameMode.CREATIVE) && !e.getPlayer().getGameMode().equals(GameMode.SPECTATOR)) {
-					if(this.getClaimOwner(e.getTo().getChunk()).isFriend(e.getPlayer().getName()) || this.getClaimOwner(e.getTo().getChunk()).getOwner().equals(e.getPlayer().getName())) {
+					if(this.getClaimOwner(e.getTo().getChunk()).isFriend(e.getPlayer().getUniqueId()) || this.getClaimOwner(e.getTo().getChunk()).getOwner().equals(e.getPlayer().getUniqueId())) {
 						e.getPlayer().setAllowFlight(true);
 						flyMessage("on", e.getPlayer());
 					}else if(!e.getPlayer().hasPermission("essentials.fly") && e.getPlayer().getAllowFlight()){
@@ -1055,7 +1039,7 @@ public class ClaimManager implements Listener{
 					String StrNumPage = ""+e.getInventory().getItem(18).getItemMeta().getLore().get(1).substring(18);
 					int numPage = Integer.parseInt(StrNumPage);
 					ItemStack item = e.getCurrentItem();
-					this.getClaimOwner(e.getWhoClicked().getName()).removeFriend(item.getItemMeta().getDisplayName());
+					this.getClaimOwner(e.getWhoClicked().getUniqueId()).removeFriend(Bukkit.getOfflinePlayer(item.getItemMeta().getDisplayName()).getUniqueId());
 					e.getWhoClicked().sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+item.getItemMeta().getDisplayName().toString()+ChatColor.GREEN+" viens d'être supprimé de votre liste d'ami.");
 					this.openFriendMenu((Player) e.getWhoClicked(), numPage);
 				}
@@ -1079,12 +1063,12 @@ public class ClaimManager implements Listener{
 			}
 			//UNCLAIM
 			if(e.getCurrentItem() != null && e.getCurrentItem().getType().equals(Material.MYCELIUM)) {
-				if(this.isClaim(e.getWhoClicked().getLocation().getChunk()) && (e.getWhoClicked().getName().equals(this.getClaimOwner(e.getWhoClicked().getLocation().getChunk()).getOwner()) || e.getWhoClicked().hasPermission("instantclaims.unclaim.bypass"))) {
+				if(this.isClaim(e.getWhoClicked().getLocation().getChunk()) && (e.getWhoClicked().getUniqueId().equals(this.getClaimOwner(e.getWhoClicked().getLocation().getChunk()).getOwner()) || e.getWhoClicked().hasPermission("instantclaims.unclaim.bypass"))) {
 					this.unclaim((Player) e.getWhoClicked());
 					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.0F, 1.0F);
 					e.getWhoClicked().sendMessage("§aCe chunk viens d'être libéré.");
 					e.getWhoClicked().closeInventory();
-				}else if(!e.getWhoClicked().getName().equals(this.getClaimOwner(e.getWhoClicked().getLocation().getChunk()).getOwner()) 
+				}else if(!e.getWhoClicked().getUniqueId().equals(this.getClaimOwner(e.getWhoClicked().getLocation().getChunk()).getOwner()) 
 						&& this.isClaim(e.getWhoClicked().getLocation().getChunk())){
 					e.getWhoClicked().sendMessage("§cErreur: Ce chunk ne vous appartient pas.");
 					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
@@ -1098,11 +1082,11 @@ public class ClaimManager implements Listener{
 			}
 			//GIVECLAIM
 			if(e.getCurrentItem() != null && e.getCurrentItem().getType().equals(Material.WRITABLE_BOOK)) {
-				if(this.isClaim(e.getWhoClicked().getLocation().getChunk()) && (e.getWhoClicked().getName().equals(this.getClaimOwner(e.getWhoClicked().getLocation().getChunk()).getOwner()) || e.getWhoClicked().hasPermission("instantclaims.giveclaim.bypass"))) {
+				if(this.isClaim(e.getWhoClicked().getLocation().getChunk()) && (e.getWhoClicked().getUniqueId().equals(this.getClaimOwner(e.getWhoClicked().getLocation().getChunk()).getOwner()) || e.getWhoClicked().hasPermission("instantclaims.giveclaim.bypass"))) {
 					e.getWhoClicked().closeInventory();
 					openGiveClaimMenu((Player)e.getWhoClicked());
 					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.0F, 1.0F);
-				}else if(!e.getWhoClicked().getName().equals(this.getClaimOwner(e.getWhoClicked().getLocation().getChunk()).getOwner()) 
+				}else if(!e.getWhoClicked().getUniqueId().equals(this.getClaimOwner(e.getWhoClicked().getLocation().getChunk()).getOwner()) 
 						&& this.isClaim(e.getWhoClicked().getLocation().getChunk())){
 					e.getWhoClicked().sendMessage("§cErreur: Ce chunk ne vous appartient pas.");
 					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
@@ -1117,9 +1101,9 @@ public class ClaimManager implements Listener{
 			//CLAIM 16X16
 			if(e.getCurrentItem() != null && e.getCurrentItem().getType().equals(Material.DIRT)) {
 				e.getWhoClicked().closeInventory();
-				if(!this.isClaim(e.getWhoClicked().getLocation().getChunk()) && SurvivalClaim.getEconomy().getBalance(e.getWhoClicked().getName())>= this.getPrices().get(0)) {
+				if(!this.isClaim(e.getWhoClicked().getLocation().getChunk()) && SurvivalClaim.getEconomy().getBalance(Bukkit.getOfflinePlayer(e.getWhoClicked().getUniqueId()))>= this.getPrices().get(0)) {
 					//PRELEVEMENT ARGENT
-					SurvivalClaim.getEconomy().withdrawPlayer(e.getWhoClicked().getName(), SurvivalClaim.getClaimsManager().getPrices().get(0));
+					SurvivalClaim.getEconomy().withdrawPlayer(Bukkit.getOfflinePlayer(e.getWhoClicked().getUniqueId()), SurvivalClaim.getClaimsManager().getPrices().get(0));
 					//CLAIM
 					this.claim((Player) e.getWhoClicked());
 					//MESSAGE & SOUND
@@ -1129,7 +1113,7 @@ public class ClaimManager implements Listener{
 					//MESSAGE & SOUND
 					e.getWhoClicked().sendMessage("§cErreur: Cette zone appartient déjà à quelqu'un.");
 					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
-				}else if(SurvivalClaim.getEconomy().getBalance(e.getWhoClicked().getName()) < SurvivalClaim.getClaimsManager().getPrices().get(0)) {
+				}else if(SurvivalClaim.getEconomy().getBalance(Bukkit.getOfflinePlayer(e.getWhoClicked().getUniqueId())) < SurvivalClaim.getClaimsManager().getPrices().get(0)) {
 					//MESSAGE & SOUND
 					e.getWhoClicked().sendMessage("§cErreur: Vous n'avez pas l'argent necessaire.");
 					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
@@ -1142,9 +1126,9 @@ public class ClaimManager implements Listener{
 						!this.isClaim(new ClaimChunk(e.getWhoClicked().getWorld().getName()+"/"+(e.getWhoClicked().getLocation().getChunk().getX()+1)+"/"+e.getWhoClicked().getLocation().getChunk().getZ())) &&
 						!this.isClaim(new ClaimChunk(e.getWhoClicked().getWorld().getName()+"/"+e.getWhoClicked().getLocation().getChunk().getX()+"/"+(e.getWhoClicked().getLocation().getChunk().getZ()-1))) &&
 						!this.isClaim(new ClaimChunk(e.getWhoClicked().getWorld().getName()+"/"+(e.getWhoClicked().getLocation().getChunk().getX()+1)+"/"+(e.getWhoClicked().getLocation().getChunk().getZ()-1))) &&
-						SurvivalClaim.getEconomy().getBalance(e.getWhoClicked().getName())>= this.getPrices().get(1)) {
+						SurvivalClaim.getEconomy().getBalance(Bukkit.getOfflinePlayer(e.getWhoClicked().getUniqueId()))>= this.getPrices().get(1)) {
 					//PRELEVEMENT ARGENT
-					SurvivalClaim.getEconomy().withdrawPlayer(e.getWhoClicked().getName(), this.getPrices().get(1));
+					SurvivalClaim.getEconomy().withdrawPlayer(Bukkit.getOfflinePlayer(e.getWhoClicked().getUniqueId()), this.getPrices().get(1));
 					//CLAIM
 					this.claim((Player) e.getWhoClicked());
 					this.claim((Player) e.getWhoClicked(), new ClaimChunk(e.getWhoClicked().getWorld().getName()+"/"+(e.getWhoClicked().getLocation().getChunk().getX()+1)+"/"+e.getWhoClicked().getLocation().getChunk().getZ()));
@@ -1160,7 +1144,7 @@ public class ClaimManager implements Listener{
 					//MESSAGE & SOUND
 					e.getWhoClicked().sendMessage("§cErreur: Cette zone appartient déjà à quelqu'un.");
 					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
-				}else if(SurvivalClaim.getEconomy().getBalance(e.getWhoClicked().getName())< this.getPrices().get(1)) {
+				}else if(SurvivalClaim.getEconomy().getBalance(Bukkit.getOfflinePlayer(e.getWhoClicked().getUniqueId()))< this.getPrices().get(1)) {
 					//MESSAGE & SOUND
 					e.getWhoClicked().sendMessage("§cErreur: Vous n'avez pas l'argent necessaire.");
 					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
@@ -1170,7 +1154,7 @@ public class ClaimManager implements Listener{
 			if(e.getCurrentItem() != null && e.getCurrentItem().getType().equals(Material.STONE)) {
 				e.getWhoClicked().closeInventory();
 				Chunk chunk = e.getWhoClicked().getLocation().getChunk();
-				if(!this.isClaim(e.getWhoClicked().getLocation().getChunk()) && SurvivalClaim.getEconomy().getBalance(e.getWhoClicked().getName())>= this.getPrices().get(2)
+				if(!this.isClaim(e.getWhoClicked().getLocation().getChunk()) && SurvivalClaim.getEconomy().getBalance(Bukkit.getOfflinePlayer(e.getWhoClicked().getUniqueId()))>= this.getPrices().get(2)
 					&&	!this.isClaim(new ClaimChunk(chunk.getWorld().getName()+"/"+(chunk.getX()-1 )+"/"+(chunk.getZ()+1 )))
 				&& !this.isClaim(new ClaimChunk(chunk.getWorld().getName()+"/"+(chunk.getX()-1 )+"/"+(chunk.getZ() )))
 				&& !this.isClaim(new ClaimChunk(chunk.getWorld().getName()+"/"+(chunk.getX()-1 )+"/"+(chunk.getZ()-1 )))
@@ -1180,7 +1164,7 @@ public class ClaimManager implements Listener{
 				&& !this.isClaim(new ClaimChunk(chunk.getWorld().getName()+"/"+(chunk.getX()+1 )+"/"+(chunk.getZ() )))
 				&& !this.isClaim(new ClaimChunk(chunk.getWorld().getName()+"/"+(chunk.getX()+1 )+"/"+(chunk.getZ()-1 )))) {
 					//PRELEVEMENT ARGENT
-					SurvivalClaim.getEconomy().withdrawPlayer(e.getWhoClicked().getName(), this.getPrices().get(2));
+					SurvivalClaim.getEconomy().withdrawPlayer(Bukkit.getOfflinePlayer(e.getWhoClicked().getUniqueId()), this.getPrices().get(2));
 					//CLAIM
 					this.claim((Player) e.getWhoClicked(), new ClaimChunk(chunk));
 					this.claim((Player) e.getWhoClicked(), new ClaimChunk(chunk.getWorld().getName()+"/"+(chunk.getX()-1 )+"/"+(chunk.getZ()+1 )));
@@ -1206,7 +1190,7 @@ public class ClaimManager implements Listener{
 					//MESSAGE & SOUND
 					e.getWhoClicked().sendMessage("§cErreur: Cette zone appartient déjà à quelqu'un.");
 					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
-				}else if(SurvivalClaim.getEconomy().getBalance(e.getWhoClicked().getName())< this.getPrices().get(2)) {
+				}else if(SurvivalClaim.getEconomy().getBalance(Bukkit.getOfflinePlayer(e.getWhoClicked().getUniqueId()))< this.getPrices().get(2)) {
 					//MESSAGE & SOUND
 					e.getWhoClicked().sendMessage("§cErreur: Vous n'avez pas l'argent necessaire.");
 					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
@@ -1215,9 +1199,9 @@ public class ClaimManager implements Listener{
 			//CLAIM 80X80
 			if(e.getCurrentItem() != null && e.getCurrentItem().getType().equals(Material.GOLD_BLOCK)) {
 				e.getWhoClicked().closeInventory();
-				if(!this.isClaim(e.getWhoClicked().getLocation().getChunk()) && SurvivalClaim.getEconomy().getBalance(e.getWhoClicked().getName())>= this.getPrices().get(3)) {
+				if(!this.isClaim(e.getWhoClicked().getLocation().getChunk()) && SurvivalClaim.getEconomy().getBalance(Bukkit.getOfflinePlayer(e.getWhoClicked().getUniqueId()))>= this.getPrices().get(3)) {
 					//PRELEVEMENT ARGENT
-					//SurvivalClaim.getEconomy().withdrawPlayer(e.getWhoClicked().getName(), this.getPrices().get(3));
+					//SurvivalClaim.getEconomy().withdrawPlayer(Bukkit.getOfflinePlayer(e.getWhoClicked().getUniqueId()), this.getPrices().get(3));
 					//CLAIM
 					e.getWhoClicked().sendMessage("§cErreur: non dispo pour le moment.");
 					
@@ -1228,7 +1212,7 @@ public class ClaimManager implements Listener{
 					//MESSAGE & SOUND
 					e.getWhoClicked().sendMessage("§cErreur: Cette zone appartient déjà à quelqu'un.");
 					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
-				}else if(SurvivalClaim.getEconomy().getBalance(e.getWhoClicked().getName())< this.getPrices().get(3)) {
+				}else if(SurvivalClaim.getEconomy().getBalance(Bukkit.getOfflinePlayer(e.getWhoClicked().getUniqueId()))< this.getPrices().get(3)) {
 					//MESSAGE & SOUND
 					e.getWhoClicked().sendMessage("§cErreur: Vous n'avez pas l'argent necessaire.");
 					((Player)e.getWhoClicked()).playSound(e.getWhoClicked().getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1.0F, 1.0F);
