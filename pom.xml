@@ -30,14 +30,35 @@
           <outputDirectory>../spigot1.16.5/plugins</outputDirectory>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>1.4</version>
+        <executions>
+            <execution>
+                <phase>package</phase>
+                <goals>
+                    <goal>shade</goal>
+                </goals>
+            </execution>
+        </executions>
+        <configuration>
+            <artifactSet>
+              <includes>
+                <include>net.wesjd:anvilgui:*</include>
+              </includes>
+            </artifactSet>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
   <dependencies>
-  	<dependency>
-  		<groupId>net.wesjd</groupId>
-  		<artifactId>anvilgui-1_16_R3</artifactId>
-  		<version>1.5.1-SNAPSHOT</version>
-  	</dependency>
+    <dependency>
+      <groupId>net.wesjd</groupId>
+      <artifactId>anvilgui</artifactId>
+      <version>1.5.1-SNAPSHOT</version>
+      <scope>compile</scope>
+    </dependency>
   	<dependency>
   		<groupId>org.spigotmc</groupId>
   		<artifactId>spigot</artifactId>
@@ -47,7 +68,6 @@
   		<groupId>com.github.MilkBowl</groupId>
       <artifactId>VaultAPI</artifactId>
       <version>1.7</version>
-      <scope>provided</scope>
   	</dependency>
   </dependencies>
   <repositories>
