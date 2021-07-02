@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -28,7 +29,7 @@ public class ClaimCommand implements CommandExecutor{
 						Player friend = Bukkit.getPlayerExact(args[1]);
 						if(friend == null) {
 							player.sendMessage(ChatColor.RED+"Erreur: Ce joueur n'existe pas ou il n'est pas connecté.");
-						}else if(!SurvivalClaim.getClaimsManager().getClaimOwner(player.getUniqueId()).getFriends().contains(friend.getUniqueId()) && !args[1].equals(player.getName())) {
+						}else if(!SurvivalClaim.getClaimsManager().getClaimOwner(player.getUniqueId()).getFriends().contains(friend.getUniqueId())) {
 							SurvivalClaim.getClaimsManager().getClaimOwner(player.getUniqueId()).addFriend(friend.getUniqueId());
 							player.sendMessage(ChatColor.GREEN+"Validation: "+ChatColor.BLUE+args[1].toString()+ChatColor.GREEN+" viens d'être ajouté votre liste d'ami.");
 						}else if(SurvivalClaim.getClaimsManager().getClaimOwner(player.getUniqueId()).getFriends().contains(friend.getUniqueId())){
@@ -42,7 +43,7 @@ public class ClaimCommand implements CommandExecutor{
 				}
 				else if(args[0].equalsIgnoreCase("removefriend")) {
 					if(args.length >= 2) {
-						Player friend = Bukkit.getPlayerExact(args[1]);
+						OfflinePlayer friend = Bukkit.getOfflinePlayer(args[1]);
 						if(friend == null) {
 							player.sendMessage(ChatColor.RED+"Erreur: Ce joueur n'existe pas ou il n'est pas connecté.");
 						}else if(SurvivalClaim.getClaimsManager().getClaimOwner(player.getUniqueId()).getFriends().contains(friend.getUniqueId())) {

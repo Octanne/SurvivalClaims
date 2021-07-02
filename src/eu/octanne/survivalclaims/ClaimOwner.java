@@ -110,16 +110,19 @@ public class ClaimOwner {
 	static ClaimOwner get(UUID ownerId) {
 		ArrayList<ClaimChunk> claims = new ArrayList<ClaimChunk>();
 		OwnerType type;
+		ArrayList<UUID> friends = new ArrayList<>();
 		File file = new File(SurvivalClaim.pathFolder+"/data/"+ownerId);
 		
 		if(file.exists()) {
 			YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
 			ArrayList<String> serializeClaims  = (ArrayList<String>) config.get("Claims");
+			ArrayList<String> serializeFriends  = (ArrayList<String>) config.get("Friends");
 			for(String serializeClaim : serializeClaims) {claims.add(ClaimChunk.deserialize(serializeClaim));}
+			for(String serializeFriend : serializeFriends) {friends.add(UUID.fromString(serializeFriend));}
 			if(config.getString("type").equalsIgnoreCase("player")) {
 				type = OwnerType.PLAYER;
 			} else type = OwnerType.REGION;
-			return new ClaimOwner(ownerId, type, claims, (ArrayList<UUID>) config.get("Friends"));
+			return new ClaimOwner(ownerId, type, claims, friends);
 		}else return null;
 	}
 	/*
@@ -127,12 +130,14 @@ public class ClaimOwner {
 	 */
 	static boolean save(ClaimOwner owner) {
 		ArrayList<String> claimsSerialize = new ArrayList<String>();
+		ArrayList<String> friendsSerialize = new ArrayList<String>();
 		File file = new File(SurvivalClaim.pathFolder+"/data/"+owner.getOwner());
 		YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
 		for(ClaimChunk chunk : owner.getClaims()) {claimsSerialize.add(chunk.serialize());}
+		for(UUID friend : owner.getFriends()) {friendsSerialize.add(friend.toString());}
 		config.set("type", owner.getType().toString());
 		config.set("Claims", claimsSerialize);
-		config.set("Friends", owner.getFriends());
+		config.set("Friends", friendsSerialize);
 		try {
 			config.save(file);
 			return true;

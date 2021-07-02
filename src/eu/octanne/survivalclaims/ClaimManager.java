@@ -852,7 +852,7 @@ public class ClaimManager implements Listener{
 			}else if(!this.isClaim(e.getTo().getChunk()) && this.isClaim(e.getFrom().getChunk())){
 				//FLY MODE
 				if(e.getPlayer().hasPermission("Survivalclaims.fly") && !e.getPlayer().getGameMode().equals(GameMode.CREATIVE) && !e.getPlayer().getGameMode().equals(GameMode.SPECTATOR)) {
-					if(this.getClaimOwner(e.getTo().getChunk()).isFriend(e.getPlayer().getUniqueId()) || this.getClaimOwner(e.getTo().getChunk()).getOwner().equals(e.getPlayer().getUniqueId())) {
+					if(((this.getClaimOwner(e.getTo().getChunk()) != null) && (this.getClaimOwner(e.getTo().getChunk()).isFriend(e.getPlayer().getUniqueId()) || this.getClaimOwner(e.getTo().getChunk()).getOwner().equals(e.getPlayer().getUniqueId())))) {
 						e.getPlayer().setAllowFlight(true);
 						flyMessage("on", e.getPlayer());
 					}else if(!e.getPlayer().hasPermission("essentials.fly") && e.getPlayer().getAllowFlight()){
