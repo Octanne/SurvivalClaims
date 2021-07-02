@@ -11,6 +11,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.boss.BarColor;
@@ -277,7 +278,7 @@ public class ClaimManager implements Listener{
 	 * ACTIONS
 	 */
 	public void loadClaims() {
-		for(Player p : Bukkit.getOnlinePlayers()) {
+		for(OfflinePlayer p : Bukkit.getOfflinePlayers()) {
 			//IS HE ALREADY LOAD ?
 			if(!ownerClaim.isEmpty()) {
 				for(ClaimOwner claimO : ownerClaim) {

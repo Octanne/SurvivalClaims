@@ -18,7 +18,7 @@ public class ClaimCommand implements CommandExecutor{
 	File worldFile = new File(SurvivalClaim.pathFolder+"/config.yml");
 	YamlConfiguration config = YamlConfiguration.loadConfiguration(worldFile);
 	
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({"unchecked", "deprecation"})
 	@Override
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 		if(sender instanceof Player && ((ArrayList<String>)config.get("worlds")).contains(((Player) sender).getWorld().getName())) {
